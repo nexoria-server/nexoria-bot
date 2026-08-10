@@ -1,1 +1,1 @@
-# noxorio-bot
+# nexoria-bot
