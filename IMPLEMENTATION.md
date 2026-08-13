@@ -17,8 +17,7 @@ Datenbanken werden aus Sicherheits- und Datenschutzgründen nicht versioniert.
 - SQLite-Verzeichnisse und Tabellen werden idempotent angelegt; WAL und Indizes
 - Minecraft-Panel multi-guild-persistent, 15-Sekunden-Takt, Request-Lock,
   Online-Spieler und Bearbeitung nur bei Inhaltsänderung
-- Teamhierarchie korrigiert: Owner zuerst, Test Supporter zuletzt, kein Media;
-  Mitglieder erscheinen nur unter ihrer höchsten konfigurierten Rolle
+- originale Teamstruktur, Rollen, Reihenfolge und Mehrfachanzeige beibehalten
 - Moderations-Hierarchieprüfung, DMs, dauerhafte Aktionen und Verlauf ergänzt
 - Anti-Spam robuster gemacht und Raid-Logmeldungen gedrosselt
 - Secrets, virtuelle Umgebung, Logs und produktive Daten zuverlässig ignoriert

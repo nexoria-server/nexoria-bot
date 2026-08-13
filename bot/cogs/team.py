@@ -29,13 +29,13 @@ TEAM_ROLES = [
     ("👑", "Owner", settings.OWNER_ROLE_ID),
     ("👑", "Co-Owner", settings.CO_OWNER_ROLE_ID),
     ("🛡️", "Admin", settings.ADMIN_ROLE_ID),
-    ("💻", "Head Developer", settings.HEAD_DEVELOPER_ROLE_ID),
-    ("💻", "Developer", settings.DEVELOPER_TEAM_ROLE_ID),
-    ("🧪", "Test Developer", settings.TEST_DEVELOPER_ROLE_ID),
-    ("⚔️", "Moderator+", settings.MODERATOR_PLUS_ROLE_ID),
+    ("⚔️", "Moderator ++", settings.MODERATOR_PLUS_ROLE_ID),
     ("🔨", "Moderator", settings.MODERATOR_ROLE_ID),
+    ("💻", "Developer", settings.DEVELOPER_TEAM_ROLE_ID),
+    ("🏗️", "Builder", settings.BUILDER_TEAM_ROLE_ID),
     ("🤝", "Supporter", settings.SUPPORTER_ROLE_ID),
     ("🛡️", "Test Supporter", settings.TEST_SUPPORTER_TEAM_ROLE_ID),
+    ("🎥", "Media", settings.MEDIA_TEAM_ROLE_ID),
 ]
 
 
@@ -609,8 +609,6 @@ class Team(commands.Cog):
             color=discord.Color.blurple()
         )
 
-        assigned: set[int] = set()
-
         for emoji, name, role_id in TEAM_ROLES:
             if not role_id:
                 continue
@@ -626,7 +624,7 @@ class Team(commands.Cog):
                 members = [
                     member
                     for member in role.members
-                    if not member.bot and member.id not in assigned
+                    if not member.bot
                 ]
 
                 if members:
@@ -640,7 +638,6 @@ class Team(commands.Cog):
                         f"• {member.mention}"
                         for member in members
                     )
-                    assigned.update(member.id for member in members)
 
                 else:
 
