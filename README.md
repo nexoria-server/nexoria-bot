@@ -36,3 +36,10 @@ ruff check .
 
 Die Datenbank wird beim Start automatisch migriert. `data/` und `.env` werden
 nicht versioniert.
+
+## Ursprüngliche Dateien
+
+Alle vom Auftraggeber bereitgestellten Dateien liegen vollständig und mit ihren
+ursprünglichen Dateinamen unter `legacy_sources/`. Sie werden nicht automatisch
+geladen, da sie feste Discord-IDs und nicht vorhandene `bot.*`-Abhängigkeiten
+enthalten. Die startfähige Überarbeitung befindet sich unter `nexoria/`.
