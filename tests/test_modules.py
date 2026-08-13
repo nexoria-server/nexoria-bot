@@ -5,7 +5,7 @@ from main import BOT_ACTIVITY, COGS
 
 
 def test_bot_activity_text() -> None:
-    assert BOT_ACTIVITY == "NexoriaCraft.de on mv"
+    assert BOT_ACTIVITY == "NexoriaCraft.de on mc"
 
 
 def test_all_configured_extensions_exist_and_import() -> None:

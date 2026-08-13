@@ -8,7 +8,7 @@ from discord.ext import commands
 from bot.config import settings
 from bot.database import Database
 
-BOT_ACTIVITY = "NexoriaCraft.de on mv"
+BOT_ACTIVITY = "NexoriaCraft.de on mc"
 
 COGS = [
     "bot.cogs.core",
