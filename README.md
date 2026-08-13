@@ -1,45 +1,73 @@
-# Nexoria Bot
+# Nexoria Craft Discord Bot
 
-Ein modularer Discord-Management-Bot für mehrere Guilds. Konfigurationen, Rollen,
-Panels und Verlaufsdaten werden pro Guild in SQLite gespeichert; Discord-IDs sind
-nicht im Code hinterlegt.
+Der vollständige Community-Bot mit Tickets, Bewerbungen, Teamverwaltung,
+Moderation, Announcements, Giveaways, Einladungen, Minecraft-Status, Regeln,
+Welcome/Leave, Logging und Anti-Spam.
 
-## Start
+## Voraussetzungen
 
-```bash
-python -m venv .venv
-.venv/Scripts/pip install -e .
-copy .env.example .env
-python -m nexoria
-```
+- Python 3.11 bis 3.13
+- Discord-Bot mit aktiviertem **Server Members Intent** und
+  **Message Content Intent**
+- Discord-Scopes `bot` und `applications.commands`
 
-Benötigt Python 3.11+, den aktivierten **Server Members Intent** und einen
-Bot-Token. Mit `/config` wird die Guild eingerichtet. `/commands` zeigt alle
-verfügbaren Befehle und deren Parameter automatisch an.
-
-## Wichtige Befehle
-
-- `/config` – zentrales Administrationspanel
-- `/team panel` und `/team-leitungs-panel` – automatisch aktualisierte Panels
-- `/moderation …` – Warn, Timeout, Kick, Ban und Verlauf mit DM/Logging
-- `/ticket panel` – Ticket-Auswahl; geschlossene Tickets werden archiviert
-- `/application panel` – konfigurierbare Bewerbungsarten und Testphasen
-- `/announce` – Vorschau und kontrollierter Versand
-- `/minecraft configure` – gecachter Serverstatus im 15-Sekunden-Takt
-
-## Tests
+## Installation
 
 ```bash
-pytest
-ruff check .
+git clone --branch agent/modular-multi-guild-bot --single-branch \
+  https://github.com/nexoria-server/nexoria-bot.git
+cd nexoria-bot
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+cp .env.example .env
 ```
 
-Die Datenbank wird beim Start automatisch migriert. `data/` und `.env` werden
-nicht versioniert.
+Die IDs eines Discord-Objekts erhältst du nach Aktivierung des Discord-
+Entwicklermodus über **Rechtsklick → ID kopieren**. Trage Token, Kanäle,
+Kategorien und Rollen in `.env` ein.
 
-## Ursprüngliche Dateien
+Start:
 
-Alle vom Auftraggeber bereitgestellten Dateien liegen vollständig und mit ihren
-ursprünglichen Dateinamen unter `legacy_sources/`. Sie werden nicht automatisch
-geladen, da sie feste Discord-IDs und nicht vorhandene `bot.*`-Abhängigkeiten
-enthalten. Die startfähige Überarbeitung befindet sich unter `nexoria/`.
+```bash
+.venv/bin/python main.py
+```
+
+## Vionity aktualisieren
+
+Im bestehenden Verzeichnis:
+
+```bash
+cd /root/nexoria-bot
+git pull --ff-only origin agent/modular-multi-guild-bot
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python main.py
+```
+
+Die vorhandene `.env` und Datenbanken werden von Git nicht verändert. Vor
+einem Update empfiehlt sich trotzdem ein Backup des Ordners `data/`.
+
+## Erste Discord-Konfiguration
+
+```text
+/config logs:#logs tickets:Ticket-Kategorie applications:#bewerbungen
+        ticket_staff:@Support application_staff:@Bewerbungsteam
+/ticket channel:#tickets
+/bewerbung_panel
+/minecraft kanal:#minecraft-status
+/invite_panel
+/announce-panel
+/regeln
+```
+
+Die tatsächlich registrierten Commands können je nach konfigurierten Modulen
+abweichen. Technische Fehler erscheinen ausschließlich in der Konsole und in
+`logs/bot.log`.
+
+## Archiv
+
+Unter `legacy_sources/` bleiben außerdem alle 14 ursprünglich einzeln
+bereitgestellten Dateien unverändert erhalten. Sie werden nicht ausgeführt.
+Der vollständige und überarbeitete Bot liegt unter `bot/` und startet über
+`main.py`.
