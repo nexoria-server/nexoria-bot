@@ -1,657 +1,428 @@
-import asyncio
-from datetime import datetime
+from __future__ import annotations
 
+import io
+import re
+
+import aiosqlite
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.config import settings
+from bot.services import (
+    DEFAULT_TICKET_TYPES,
+    ensure_guild_defaults,
+    require_permission,
+    transcript_html,
+)
 
 
-# ============================================================
-# NEXORIA TICKET KONFIGURATION
-# ============================================================
-
-# Deine Ticket-Kategorie
-TICKET_CATEGORY_ID = settings.TICKET_CATEGORY_ID
-
-# Deine @Nexoria Staff Team Rolle
-STAFF_ROLE_ID = settings.TICKET_STAFF_ROLE_ID
-
-
-# ============================================================
-# TICKET-TYPEN
-# ============================================================
-
-TICKET_TYPES = {
-    "general": {
-        "label": "Allgemeiner Support",
-        "emoji": "🎫",
-        "description": "Allgemeine Fragen und Anliegen",
-    },
-    "ingame": {
-        "label": "Ingame Support",
-        "emoji": "🎮",
-        "description": "Hilfe bei Problemen im Spiel",
-    },
-    "report": {
-        "label": "Spieler melden",
-        "emoji": "🚨",
-        "description": "Melde einen Spieler beim Support",
-    },
-    "unban": {
-        "label": "Entbannungsantrag",
-        "emoji": "🔓",
-        "description": "Stelle einen Antrag auf Entbannung",
-    },
-    "other": {
-        "label": "Sonstiges",
-        "emoji": "❓",
-        "description": "Andere Anliegen",
-    },
-}
-
-
-# ============================================================
-# LOGGING
-# ============================================================
-
-async def send_ticket_log(bot, guild, message):
-    """Schreibt Ticket-Aktionen in den konfigurierten Log-Kanal."""
-
-    try:
-        if not hasattr(bot, "db"):
-            return
-
-        config = await bot.db.guild_config(guild.id)
-
-        log_channel_id = config["log_channel_id"]
-
-        if not log_channel_id:
-            return
-
-        log_channel = guild.get_channel(int(log_channel_id))
-
-        if log_channel is None:
-            return
-
-        embed = discord.Embed(
-            title="🎫 Ticket-Log",
-            description=message,
-            color=discord.Color.blurple(),
-            timestamp=datetime.utcnow(),
+class TicketTypeSelect(discord.ui.Select):
+    def __init__(self) -> None:
+        super().__init__(
+            placeholder="Ticketart auswählen",
+            custom_id="nexoria:ticket:type",
+            options=[
+                discord.SelectOption(
+                    label=name,
+                    value=key,
+                    description=description[:100],
+                    emoji=emoji,
+                )
+                for key, (name, description, emoji) in DEFAULT_TICKET_TYPES.items()
+            ],
         )
 
-        await log_channel.send(embed=embed)
+    async def callback(self, interaction: discord.Interaction) -> None:
+        if not interaction.guild or not isinstance(interaction.user, discord.Member):
+            return
+        database = interaction.client.db
+        await ensure_guild_defaults(database, interaction.guild.id)
+        ticket_type = await database.fetchone(
+            "SELECT * FROM ticket_types WHERE guild_id=? AND type_key=? AND enabled=1",
+            (interaction.guild.id, self.values[0]),
+        )
+        if not ticket_type:
+            await interaction.response.send_message(
+                "❌ Diese Ticketart ist nicht konfiguriert.", ephemeral=True
+            )
+            return
+        existing = await database.fetchone(
+            "SELECT channel_id FROM tickets WHERE guild_id=? AND owner_id=? "
+            "AND type_key=? AND status='open'",
+            (interaction.guild.id, interaction.user.id, self.values[0]),
+        )
+        if existing:
+            await interaction.response.send_message(
+                f"❌ Du hast bereits ein offenes Ticket: <#{existing['channel_id']}>",
+                ephemeral=True,
+            )
+            return
+        category = interaction.guild.get_channel(ticket_type["category_id"])
+        if not isinstance(category, discord.CategoryChannel):
+            fallback = await database.guild_config(interaction.guild.id)
+            category = interaction.guild.get_channel(fallback["ticket_category_id"])
+        staff_ids = await database.roles(interaction.guild.id, f"ticket.{self.values[0]}.staff")
+        if not staff_ids:
+            fallback = await database.guild_config(interaction.guild.id)
+            if fallback["ticket_staff_role_id"]:
+                staff_ids.add(int(fallback["ticket_staff_role_id"]))
+        overwrites = {
+            interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            interaction.user: discord.PermissionOverwrite(
+                view_channel=True, send_messages=True, read_message_history=True
+            ),
+            interaction.guild.me: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_channels=True,
+            ),
+        }
+        for role_id in staff_ids:
+            role = interaction.guild.get_role(role_id)
+            if role:
+                overwrites[role] = discord.PermissionOverwrite(
+                    view_channel=True,
+                    send_messages=True,
+                    read_message_history=True,
+                )
+        await interaction.response.defer(ephemeral=True)
+        channel = await interaction.guild.create_text_channel(
+            name=f"{self.values[0]}-{interaction.user.name}"[:100],
+            category=category if isinstance(category, discord.CategoryChannel) else None,
+            overwrites=overwrites,
+            topic=f"Ticket-Ersteller: {interaction.user.id} | Typ: {self.values[0]}",
+            reason=f"Ticket von {interaction.user}",
+        )
+        try:
+            ticket_id = (
+                await database.execute(
+                    "INSERT INTO tickets(guild_id,channel_id,owner_id,type_key) VALUES(?,?,?,?)",
+                    (
+                        interaction.guild.id,
+                        channel.id,
+                        interaction.user.id,
+                        self.values[0],
+                    ),
+                )
+            ).lastrowid
+        except aiosqlite.IntegrityError:
+            await channel.delete(reason="Doppeltes Ticket verhindert")
+            await interaction.followup.send(
+                "Ein Ticket dieser Art wurde gleichzeitig bereits erstellt.", ephemeral=True
+            )
+            return
+        await channel.send(
+            interaction.user.mention,
+            embed=discord.Embed(
+                title=f"{ticket_type['emoji']} Ticket #{ticket_id} – {ticket_type['name']}",
+                description=(
+                    "Beschreibe dein Anliegen möglichst genau. "
+                    "Das zuständige Team wurde freigeschaltet."
+                ),
+                color=discord.Color.blurple(),
+            ),
+            view=CloseTicketView(),
+        )
+        await interaction.followup.send(f"✅ Ticket erstellt: {channel.mention}", ephemeral=True)
 
-    except Exception as error:
-        print(f"[Ticket-Log] Fehler: {error}")
+
+class TicketPanelView(discord.ui.View):
+    def __init__(self) -> None:
+        super().__init__(timeout=None)
+        self.add_item(TicketTypeSelect())
 
 
-# ============================================================
-# HILFSFUNKTIONEN
-# ============================================================
+class CloseReasonModal(discord.ui.Modal, title="Ticket schließen"):
+    reason = discord.ui.TextInput(
+        label="Abschlussgrund",
+        placeholder="Erledigt",
+        required=False,
+        max_length=500,
+    )
 
-async def get_staff_role(bot, guild: discord.Guild):
-    config = await bot.db.guild_config(guild.id)
-    role_id = int(config["ticket_staff_role_id"] or STAFF_ROLE_ID)
-    return guild.get_role(role_id)
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        if not interaction.guild or not isinstance(interaction.channel, discord.TextChannel):
+            return
+        database = interaction.client.db
+        ticket = await database.fetchone(
+            "SELECT * FROM tickets WHERE channel_id=? AND status='open'",
+            (interaction.channel.id,),
+        )
+        if not ticket:
+            await interaction.response.send_message(
+                "❌ Dieses Ticket ist bereits geschlossen.", ephemeral=True
+            )
+            return
+        is_owner = interaction.user.id == ticket["owner_id"]
+        staff_ids = await database.roles(interaction.guild.id, f"ticket.{ticket['type_key']}.staff")
+        member_roles = {role.id for role in getattr(interaction.user, "roles", [])}
+        is_staff = bool(staff_ids & member_roles) or getattr(
+            interaction.user.guild_permissions, "administrator", False
+        )
+        if not is_owner and not is_staff:
+            await interaction.response.send_message(
+                "❌ Du darfst dieses Ticket nicht schließen.", ephemeral=True
+            )
+            return
+        await interaction.response.defer(ephemeral=True)
+        messages = [
+            message async for message in interaction.channel.history(limit=None, oldest_first=True)
+        ]
+        transcript = transcript_html(messages, f"Ticket #{ticket['id']}")
+        cursor = await database.execute(
+            "UPDATE tickets SET status='closed',closed_at=CURRENT_TIMESTAMP,"
+            "closed_by=?,close_reason=?,transcript=? "
+            "WHERE id=? AND status='open'",
+            (
+                interaction.user.id,
+                str(self.reason) or "Erledigt",
+                transcript,
+                ticket["id"],
+            ),
+        )
+        if cursor.rowcount != 1:
+            await interaction.followup.send(
+                "❌ Ticket wurde bereits parallel geschlossen.", ephemeral=True
+            )
+            return
+        ticket_type = await database.fetchone(
+            "SELECT archive_channel_id FROM ticket_types WHERE guild_id=? AND type_key=?",
+            (interaction.guild.id, ticket["type_key"]),
+        )
+        archive_id = ticket_type["archive_channel_id"] if ticket_type else 0
+        archive_id = archive_id or await database.setting(
+            interaction.guild.id, "channel.ticket_archive", 0
+        )
+        archive = interaction.guild.get_channel(archive_id)
+        if isinstance(archive, discord.TextChannel):
+            await archive.send(
+                embed=discord.Embed(
+                    title=f"📚 Ticket #{ticket['id']} archiviert",
+                    description=(
+                        f"**Ersteller:** <@{ticket['owner_id']}>\n"
+                        f"**Typ:** {ticket['type_key']}\n"
+                        f"**Geschlossen von:** {interaction.user.mention}\n"
+                        f"**Grund:** {str(self.reason) or 'Erledigt'}"
+                    ),
+                    color=discord.Color.dark_grey(),
+                ),
+                file=discord.File(
+                    io.BytesIO(transcript.encode()),
+                    filename=f"ticket-{ticket['id']}.html",
+                ),
+            )
+        await interaction.followup.send(
+            "✅ Ticket archiviert. Der Kanal wird gelöscht.", ephemeral=True
+        )
+        await interaction.channel.delete(reason=f"Ticket #{ticket['id']} geschlossen")
 
-
-async def is_staff(bot, member: discord.Member) -> bool:
-    role = await get_staff_role(bot, member.guild)
-
-    return role is not None and role in member.roles
-
-
-def get_ticket_owner_id(channel: discord.TextChannel):
-    """
-    Liest die User-ID aus dem Topic des Tickets.
-    """
-
-    if not channel.topic:
-        return None
-
-    prefix = "Ticket-Ersteller: "
-
-    for part in channel.topic.split("|"):
-        part = part.strip()
-
-        if part.startswith(prefix):
-            value = part[len(prefix):].strip()
-
-            try:
-                return int(value)
-            except ValueError:
-                return None
-
-    return None
-
-
-# ============================================================
-# TICKET SCHLIESSEN
-# ============================================================
 
 class CloseTicketView(discord.ui.View):
-
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(timeout=None)
 
     @discord.ui.button(
         label="Ticket schließen",
         emoji="🔒",
         style=discord.ButtonStyle.danger,
-        custom_id="nexoria_ticket_close",
+        custom_id="nexoria:ticket:close",
     )
-    async def close_ticket(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button,
-    ):
-        if interaction.guild is None:
+    async def close(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        await interaction.response.send_modal(CloseReasonModal())
+
+
+class TicketArchiveSearchModal(discord.ui.Modal, title="Ticketarchiv durchsuchen"):
+    query = discord.ui.TextInput(
+        label="Name, Discord-ID oder Ticket-ID",
+        placeholder="123, Benutzername oder Discord-ID",
+        required=False,
+        max_length=100,
+    )
+    ticket_type = discord.ui.TextInput(
+        label="Ticketart",
+        placeholder="support, media, partner ... oder leer",
+        required=False,
+        max_length=50,
+    )
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        if not interaction.guild:
             return
-
-        if not isinstance(
-            interaction.channel,
-            discord.TextChannel,
-        ):
-            await interaction.response.send_message(
-                "❌ Dieses Ticket kann hier nicht geschlossen werden.",
-                ephemeral=True,
-            )
+        database = interaction.client.db
+        if not await require_permission(interaction, database, "ticket_archive"):
             return
-
-        member = interaction.user
-
-        # Prüfen, ob Staff oder Ticket-Ersteller
-        staff = isinstance(member, discord.Member) and await is_staff(
-            interaction.client, member
+        query = str(self.query).strip()
+        type_key = str(self.ticket_type).strip().casefold()
+        clauses = ["guild_id=?", "status='closed'"]
+        parameters: list[object] = [interaction.guild.id]
+        if type_key:
+            clauses.append("type_key=?")
+            parameters.append(type_key)
+        if query.isdigit():
+            clauses.append("(id=? OR owner_id=?)")
+            parameters.extend([int(query), int(query)])
+        rows = await database.fetchall(
+            "SELECT * FROM tickets WHERE " + " AND ".join(clauses) + " ORDER BY id DESC LIMIT 20",
+            tuple(parameters),
         )
-
-        owner_id = get_ticket_owner_id(interaction.channel)
-
-        owner = owner_id == member.id
-
-        if not staff and not owner:
-            await interaction.response.send_message(
-                "❌ Nur der Ticket-Ersteller oder das "
-                "Nexoria Staff Team kann dieses Ticket schließen.",
-                ephemeral=True,
+        if query and not query.isdigit():
+            rows = [
+                row
+                for row in rows
+                if (member := interaction.guild.get_member(row["owner_id"]))
+                and query.casefold() in member.display_name.casefold()
+            ]
+        description = (
+            "\n".join(
+                f"**#{row['id']}** <@{row['owner_id']}> – {row['type_key']} – "
+                f"{row['closed_at']} – {row['close_reason'] or 'ohne Grund'}"
+                for row in rows
             )
-            return
-
-        # SOFORT auf die Interaction antworten.
-        # Dadurch entsteht kein "hat nicht rechtzeitig reagiert".
+            or "Keine archivierten Tickets gefunden."
+        )
+        exact = next((row for row in rows if query.isdigit() and row["id"] == int(query)), None)
+        file = None
+        if exact and exact["transcript"]:
+            file = discord.File(
+                io.BytesIO(exact["transcript"].encode("utf-8")),
+                filename=f"ticket-{exact['id']}.html",
+            )
         await interaction.response.send_message(
-            "🔒 Dieses Ticket wird in **5 Sekunden** geschlossen."
-        )
-
-        # Log VOR dem Löschen schreiben
-        await send_ticket_log(
-            interaction.client,
-            interaction.guild,
-            (
-                f"**Ticket geschlossen:** "
-                f"{interaction.channel.mention}\n"
-                f"**Geschlossen von:** {member.mention}"
-            ),
-        )
-
-        # 5 Sekunden warten
-        await asyncio.sleep(5)
-
-        try:
-            await interaction.channel.delete(
-                reason=f"Ticket geschlossen von {member}"
-            )
-
-        except discord.Forbidden:
-            print(
-                "[Tickets] Der Bot darf den Ticket-Kanal "
-                "nicht löschen. 'Kanäle verwalten' fehlt."
-            )
-
-            try:
-                await interaction.followup.send(
-                    "❌ Ich konnte das Ticket nicht löschen.\n\n"
-                    "Dem Bot fehlt wahrscheinlich die Berechtigung "
-                    "**Kanäle verwalten**.",
-                    ephemeral=True,
-                )
-            except discord.HTTPException:
-                pass
-
-        except discord.NotFound:
-            # Kanal wurde bereits gelöscht.
-            pass
-
-        except discord.HTTPException as error:
-            print(
-                f"[Tickets] Discord-Fehler beim Löschen: {error}"
-            )
-
-            try:
-                await interaction.followup.send(
-                    "❌ Beim Löschen des Tickets ist ein Discord-Fehler "
-                    "aufgetreten. Bitte informiere das Staff-Team.",
-                    ephemeral=True,
-                )
-            except discord.HTTPException:
-                pass
-
-        except Exception as error:
-            print(
-                f"[Tickets] Unerwarteter Fehler beim Löschen: {error}"
-            )
-
-
-# ============================================================
-# TICKET AUSWAHL
-# ============================================================
-
-class TicketSelect(discord.ui.Select):
-
-    def __init__(self):
-
-        options = [
-            discord.SelectOption(
-                label=data["label"],
-                description=data["description"],
-                emoji=data["emoji"],
-                value=key,
-            )
-            for key, data in TICKET_TYPES.items()
-        ]
-
-        super().__init__(
-            placeholder="🎫 Wähle den passenden Bereich aus...",
-            min_values=1,
-            max_values=1,
-            options=options,
-            custom_id="nexoria_ticket_select",
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-
-        guild = interaction.guild
-
-        if guild is None:
-            await interaction.response.send_message(
-                "❌ Dieses Ticket-System kann nur auf einem Server "
-                "verwendet werden.",
-                ephemeral=True,
-            )
-            return
-
-        ticket_type = self.values[0]
-        ticket_data = TICKET_TYPES[ticket_type]
-
-        config = await interaction.client.db.guild_config(guild.id)
-        category_id = int(config["ticket_category_id"] or TICKET_CATEGORY_ID)
-
-        # Kategorie suchen
-        category = guild.get_channel(category_id)
-
-        if not isinstance(category, discord.CategoryChannel):
-            await interaction.response.send_message(
-                "❌ Die konfigurierte Ticket-Kategorie wurde nicht gefunden.\n\n"
-                f"ID: `{category_id or 'nicht konfiguriert'}`",
-                ephemeral=True,
-            )
-            return
-
-        # Staff-Rolle suchen
-        staff_role = await get_staff_role(interaction.client, guild)
-
-        if staff_role is None:
-            await interaction.response.send_message(
-                "❌ Die konfigurierte Staff-Rolle wurde nicht gefunden.\n\n"
-                f"ID: `{int(config['ticket_staff_role_id'] or STAFF_ROLE_ID) or 'nicht konfiguriert'}`",
-                ephemeral=True,
-            )
-            return
-
-        # --------------------------------------------------------
-        # Prüfen, ob bereits ein Ticket existiert
-        # --------------------------------------------------------
-
-        existing_ticket = None
-
-        for channel in guild.text_channels:
-
-            if channel.category_id != category.id:
-                continue
-
-            owner_id = get_ticket_owner_id(channel)
-
-            if owner_id == interaction.user.id:
-                existing_ticket = channel
-                break
-
-        if existing_ticket:
-            await interaction.response.send_message(
-                (
-                    "❌ Du hast bereits ein offenes Ticket:\n"
-                    f"{existing_ticket.mention}"
-                ),
-                ephemeral=True,
-            )
-            return
-
-        # --------------------------------------------------------
-        # Ticket-Name
-        # --------------------------------------------------------
-
-        username = interaction.user.name.lower()
-
-        safe_username = "".join(
-            character
-            if character.isalnum() or character in "-_"
-            else "-"
-            for character in username
-        )
-
-        safe_username = safe_username[:20]
-
-        channel_name = f"ticket-{safe_username}"
-
-        # --------------------------------------------------------
-        # Berechtigungen
-        # --------------------------------------------------------
-
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(
-                view_channel=False
-            ),
-
-            interaction.user: discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=True,
-                read_message_history=True,
-                attach_files=True,
-                embed_links=True,
-            ),
-
-            staff_role: discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=True,
-                read_message_history=True,
-                manage_messages=True,
-                attach_files=True,
-                embed_links=True,
-            ),
-        }
-
-        # --------------------------------------------------------
-        # Bot-Berechtigungen
-        # --------------------------------------------------------
-
-        bot_member = guild.me
-
-        if bot_member is not None:
-            overwrites[bot_member] = discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=True,
-                read_message_history=True,
-                manage_messages=True,
-                manage_channels=True,
-                attach_files=True,
-                embed_links=True,
-            )
-
-        # --------------------------------------------------------
-        # Ticket erstellen
-        # --------------------------------------------------------
-
-        try:
-
-            ticket_channel = await guild.create_text_channel(
-                name=channel_name,
-                category=category,
-                overwrites=overwrites,
-                topic=(
-                    f"Ticket-Ersteller: {interaction.user.id} | "
-                    f"Ticket-Typ: {ticket_type}"
-                ),
-                reason=(
-                    f"Nexoria Ticket - "
-                    f"{ticket_data['label']}"
-                ),
-            )
-
-        except discord.Forbidden:
-
-            await interaction.response.send_message(
-                (
-                    "❌ Ich konnte das Ticket nicht erstellen.\n\n"
-                    "Bitte gib dem Bot die Berechtigung "
-                    "**Kanäle verwalten**."
-                ),
-                ephemeral=True,
-            )
-            return
-
-        except discord.HTTPException as error:
-
-            print(
-                f"[Tickets] Fehler beim Erstellen: {error}"
-            )
-
-            await interaction.response.send_message(
-                (
-                    "❌ Beim Erstellen des Tickets ist ein "
-                    "Discord-Fehler aufgetreten."
-                ),
-                ephemeral=True,
-            )
-            return
-
-        # --------------------------------------------------------
-        # Ticket Embed
-        # --------------------------------------------------------
-
-        embed = discord.Embed(
-            title=(
-                f"{ticket_data['emoji']} "
-                f"{ticket_data['label']}"
-            ),
-            description=(
-                f"Hallo {interaction.user.mention}! 👋\n\n"
-                "vielen Dank, dass du den **Nexoria Support** "
-                "kontaktierst.\n\n"
-                "Bitte beschreibe dein Anliegen möglichst genau "
-                "und füge bei Bedarf Screenshots oder weitere "
-                "Informationen hinzu.\n\n"
-                "Unser **Support-Team wird sich "
-                "schnellstmöglich bei dir melden.**\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                "⚠️ **Wichtiger Hinweis**\n"
-                "Bitte erstelle Tickets nur, wenn du tatsächlich "
-                "Unterstützung benötigst."
-            ),
-            color=discord.Color.blurple(),
-        )
-
-        embed.add_field(
-            name="📌 Bereich",
-            value=ticket_data["label"],
-            inline=True,
-        )
-
-        embed.add_field(
-            name="👤 Erstellt von",
-            value=interaction.user.mention,
-            inline=True,
-        )
-
-        embed.set_footer(
-            text="Nexoria Support • Bitte habe etwas Geduld."
-        )
-
-        # --------------------------------------------------------
-        # Staff-Ping + Ticket-Nachricht
-        # --------------------------------------------------------
-
-        try:
-
-            await ticket_channel.send(
-                content=(
-                    f"{interaction.user.mention} "
-                    f"{staff_role.mention}"
-                ),
-                embed=embed,
-                view=CloseTicketView(),
-            )
-
-        except discord.HTTPException as error:
-
-            print(
-                f"[Tickets] Fehler beim Senden der Ticket-Nachricht: "
-                f"{error}"
-            )
-
-        # --------------------------------------------------------
-        # User bestätigen
-        # --------------------------------------------------------
-
-        await interaction.response.send_message(
-            (
-                "✅ Dein Ticket wurde erfolgreich erstellt:\n"
-                f"{ticket_channel.mention}"
-            ),
+            embed=discord.Embed(title="📚 Ticketarchiv", description=description[:4000]),
+            file=file,
             ephemeral=True,
         )
 
-        # --------------------------------------------------------
-        # Log
-        # --------------------------------------------------------
 
-        await send_ticket_log(
-            interaction.client,
-            guild,
-            (
-                f"**Ticket erstellt:** "
-                f"{ticket_channel.mention}\n"
-                f"**Ersteller:** {interaction.user.mention}\n"
-                f"**Bereich:** {ticket_data['label']}"
-            ),
-        )
-
-
-# ============================================================
-# TICKET PANEL VIEW
-# ============================================================
-
-class TicketPanelView(discord.ui.View):
-
-    def __init__(self):
+class TicketArchiveView(discord.ui.View):
+    def __init__(self) -> None:
         super().__init__(timeout=None)
 
-        self.add_item(TicketSelect())
+    @discord.ui.button(
+        label="Ticket suchen",
+        emoji="🔎",
+        style=discord.ButtonStyle.primary,
+        custom_id="nexoria:ticket:archive:search",
+    )
+    async def search(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        await interaction.response.send_modal(TicketArchiveSearchModal())
 
 
-# ============================================================
-# TICKETS COG
-# ============================================================
+class TicketTypeModal(discord.ui.Modal, title="Ticketart konfigurieren"):
+    type_key = discord.ui.TextInput(label="Schlüssel", placeholder="support", max_length=30)
+    name = discord.ui.TextInput(label="Anzeigename", placeholder="Support", max_length=80)
+    description = discord.ui.TextInput(
+        label="Beschreibung", style=discord.TextStyle.paragraph, max_length=300
+    )
+    emoji = discord.ui.TextInput(label="Emoji", placeholder="🎫", max_length=20)
 
-class Tickets(commands.Cog):
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        if not interaction.guild:
+            return
+        if not await require_permission(interaction, interaction.client.db, "settings"):
+            return
+        key = re.sub(r"[^a-z0-9_-]", "", str(self.type_key).casefold())
+        if not key:
+            await interaction.response.send_message("❌ Ungültiger Schlüssel.", ephemeral=True)
+            return
+        await interaction.client.db.execute(
+            "INSERT INTO ticket_types(guild_id,type_key,name,description,emoji) "
+            "VALUES(?,?,?,?,?) ON CONFLICT(guild_id,type_key) DO UPDATE SET "
+            "name=excluded.name,description=excluded.description,emoji=excluded.emoji",
+            (
+                interaction.guild.id,
+                key,
+                str(self.name),
+                str(self.description),
+                str(self.emoji),
+            ),
+        )
+        await interaction.response.send_message(
+            f"✅ Ticketart **{key}** gespeichert.", ephemeral=True
+        )
 
-    def __init__(self, bot):
+
+class Tickets(commands.GroupCog, group_name="ticket", group_description="Tickets"):
+    def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
+        self.close_view = CloseTicketView()
 
-        # Persistente Views registrieren
-        bot.add_view(TicketPanelView())
-        bot.add_view(CloseTicketView())
+    async def cog_load(self) -> None:
+        self.bot.add_view(TicketPanelView())
+        self.bot.add_view(self.close_view)
+        self.bot.add_view(TicketArchiveView())
 
-    # --------------------------------------------------------
-    # /ticket
-    # --------------------------------------------------------
+    @app_commands.command(name="open", description="Postet ein Ticketpanel im Zielkanal.")
+    @app_commands.default_permissions(manage_guild=True)
+    async def open(self, interaction: discord.Interaction, kanal: discord.TextChannel) -> None:
+        if not interaction.guild or not await require_permission(
+            interaction, self.bot.db, "tickets"
+        ):
+            return
+        await ensure_guild_defaults(self.bot.db, interaction.guild.id)
+        await kanal.send(
+            embed=discord.Embed(
+                title="🎫 Nexoria Craft – Tickets",
+                description="Wähle den passenden Bereich aus.",
+                color=discord.Color.blurple(),
+            ),
+            view=TicketPanelView(),
+        )
+        await interaction.response.send_message(
+            f"✅ Ticketpanel in {kanal.mention} veröffentlicht.", ephemeral=True
+        )
 
-    @app_commands.command(
-        name="ticket",
-        description="Erstellt das Nexoria Ticket-Panel.",
-    )
-    @app_commands.default_permissions(
-        manage_guild=True
-    )
-    async def ticket(
+    @app_commands.command(name="type", description="Erstellt oder bearbeitet eine Ticketart.")
+    @app_commands.default_permissions(manage_guild=True)
+    async def type(self, interaction: discord.Interaction) -> None:
+        if not await require_permission(interaction, self.bot.db, "settings"):
+            return
+        await interaction.response.send_modal(TicketTypeModal())
+
+    @app_commands.command(name="category", description="Setzt die Kategorie einer Ticketart.")
+    @app_commands.default_permissions(manage_guild=True)
+    async def category(
         self,
         interaction: discord.Interaction,
-        channel: discord.TextChannel,
-    ):
-
-        embed = discord.Embed(
-            title="🎫 Nexoria Support",
-            description=(
-                "Willkommen beim **Nexoria Support**! 👋\n\n"
-                "Bitte erstelle ein Ticket **nur, wenn du "
-                "tatsächlich Unterstützung benötigst**.\n\n"
-                "Beschreibe dein Anliegen möglichst genau, "
-                "damit unser Support-Team dir schnell helfen kann.\n\n"
-                "Unser **Support-Team wird sich schnellstmöglich "
-                "bei dir melden.**\n\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                "🎫 **Wähle unten den passenden Bereich aus.**"
-            ),
-            color=discord.Color.blurple(),
-        )
-
-        embed.add_field(
-            name="📋 Verfügbare Bereiche",
-            value=(
-                "🎫 **Allgemeiner Support**\n"
-                "🎮 **Ingame Support**\n"
-                "🚨 **Spieler melden**\n"
-                "🔓 **Entbannungsantrag**\n"
-                "❓ **Sonstiges**"
-            ),
-            inline=False,
-        )
-
-        embed.add_field(
-            name="⚠️ Bitte beachten",
-            value=(
-                "Bitte öffne nur ein Ticket, wenn du ein echtes "
-                "Anliegen hast. Missbrauch des Ticketsystems kann "
-                "Konsequenzen haben."
-            ),
-            inline=False,
-        )
-
-        embed.set_footer(
-            text="Nexoria Support • Wir helfen dir gerne weiter."
-        )
-
-        try:
-
-            await channel.send(
-                embed=embed,
-                view=TicketPanelView(),
-            )
-
-        except discord.Forbidden:
-
-            await interaction.response.send_message(
-                (
-                    "❌ Ich kann in diesem Kanal keine Nachrichten "
-                    "senden."
-                ),
-                ephemeral=True,
-            )
+        ticketart: str,
+        kategorie: discord.CategoryChannel,
+    ) -> None:
+        if not interaction.guild or not await require_permission(
+            interaction, self.bot.db, "settings"
+        ):
             return
-
+        await ensure_guild_defaults(self.bot.db, interaction.guild.id)
+        await self.bot.db.execute(
+            "UPDATE ticket_types SET category_id=? WHERE guild_id=? AND type_key=?",
+            (kategorie.id, interaction.guild.id, ticketart.casefold()),
+        )
         await interaction.response.send_message(
-            (
-                "✅ Das Nexoria Ticket-Panel wurde in "
-                f"{channel.mention} erstellt."
+            f"✅ Kategorie für **{ticketart}** gespeichert.", ephemeral=True
+        )
+
+    @app_commands.command(name="archive", description="Postet das Ticketarchiv-Panel.")
+    @app_commands.default_permissions(manage_guild=True)
+    async def archive(self, interaction: discord.Interaction, kanal: discord.TextChannel) -> None:
+        if not interaction.guild or not await require_permission(
+            interaction, self.bot.db, "ticket_archive"
+        ):
+            return
+        await kanal.send(
+            embed=discord.Embed(
+                title="📚 Ticketarchiv",
+                description=(
+                    "Suche nach Ticket-ID, Discord-ID, Name und Ticketart. "
+                    "Transkripte bleiben dauerhaft in der Datenbank gespeichert."
+                ),
+                color=discord.Color.blurple(),
             ),
-            ephemeral=True,
+            view=TicketArchiveView(),
+        )
+        await interaction.response.send_message(
+            f"✅ Ticketarchiv in {kanal.mention} veröffentlicht.", ephemeral=True
         )
 
 
-# ============================================================
-# SETUP
-# ============================================================
-
-async def setup(bot):
+async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Tickets(bot))

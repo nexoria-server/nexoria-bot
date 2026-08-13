@@ -16,10 +16,23 @@ async def test_database_is_created_and_guilds_are_isolated(tmp_path: Path) -> No
         assert (await database.guild_config(2))["log_channel_id"] == 222
         tables = {
             row["name"]
-            for row in await database.fetchall(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
+            for row in await database.fetchall("SELECT name FROM sqlite_master WHERE type='table'")
         }
-        assert {"moderation_actions", "minecraft_panels", "giveaways"} <= tables
+        assert {
+            "moderation_actions",
+            "minecraft_panels",
+            "giveaways",
+            "guild_settings",
+            "role_bindings",
+            "panel_messages",
+            "tickets",
+            "applications",
+            "giveaway_winners",
+        } <= tables
+
+        await database.set_setting(1, "channel.logs", 123)
+        assert await database.setting(1, "channel.logs") == 123
+        await database.replace_roles(1, "team.Owner", [10, 20, 20])
+        assert await database.roles(1, "team.Owner") == {10, 20}
     finally:
         await database.close()

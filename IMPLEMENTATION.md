@@ -1,42 +1,45 @@
 # Umsetzungsbericht
 
-## Grundlage
+## Architektur
 
-Der vollständige vom Auftraggeber gelieferte ZIP-Stand ist die kanonische
-Anwendung. Produktive Dateien wie `.env`, Logs, JSON-Nutzerdaten und SQLite-
-Datenbanken werden aus Sicherheits- und Datenschutzgründen nicht versioniert.
+Der ursprüngliche Bot bleibt unter `legacy_sources/` vollständig erhalten.
+Die produktiven Module arbeiten servergetrennt mit SQLite und persistenten
+Discord-Komponenten. `.env`, Logs, Datenbanken und Nutzerdaten werden nicht
+versioniert.
 
-## Überarbeitet
+## Umgesetzt
 
-- alle 13 vorhandenen Cogs in die startfähige Paketstruktur übernommen
-- fehlerhaften Announcement-Modulnamen und fehlendes Invite-Modul korrigiert
-- Modulfehler brechen den Start sichtbar ab, statt unbemerkt Features auszulassen
-- fehlerhafte Unicode-/Emoji-Kodierung im gesamten Python-Code repariert
-- sämtliche Discord-IDs aus dem Code in `.env`-Konfiguration verschoben
-- Daten-, Log- und Datenbankpfade absolut und unabhängig vom Startverzeichnis
-- SQLite-Verzeichnisse und Tabellen werden idempotent angelegt; WAL und Indizes
-- Minecraft-Panel multi-guild-persistent, 15-Sekunden-Takt, Request-Lock,
-  Online-Spieler und Bearbeitung nur bei Inhaltsänderung
-- originale Teamstruktur, Rollen, Reihenfolge und Mehrfachanzeige beibehalten
-- Moderations-Hierarchieprüfung, DMs, dauerhafte Aktionen und Verlauf ergänzt
-- Anti-Spam robuster gemacht und Raid-Logmeldungen gedrosselt
-- Secrets, virtuelle Umgebung, Logs und produktive Daten zuverlässig ignoriert
-- Vionity-Installations- und Updateanleitung ergänzt
+- zentrale `/settings`-Oberfläche für Rollen, Zuständigkeiten, Rechte und Kanäle
+- neue Teamhierarchie ohne Media, mit Test Developer und ausschließlicher
+  Anzeige der höchsten Rolle
+- Teamliste im 30-Sekunden-Takt sowie sofortige Aktualisierung bei Rollenwechsel
+- Team-Statistikpanel mit Aktionszahlen und klickbarem Moderationsverlauf
+- Moderations-DMs mit Aktion, Grund und gegebenenfalls Dauer
+- Minecraft-Panel im 15-Sekunden-Takt; geschützte Online-Spielerliste
+- kurze, relevante Formulare für Test Supporter, Test Developer, Media und Partner
+- individuelle Testzeiten von 30/14/14/7 Tagen und thematische Annahme-/Absage-DMs
+- dauerhaftes Bewerbungsarchiv mit Spieler- und Typauswahl
+- frei platzierbare Ticketpanels, Ticketarten, Kategorien und mehrere Staffrollen
+- vollständige HTML-Tickettranskripte und durchsuchbares Archiv
+- atomarer Giveaway-Abschluss und genau einmal einlösbares Gewinner-Ticket
+- permanentes Command-Panel mit unverändertem Hauptpanel und privaten Detailseiten
+- Datenbankindizes und Eindeutigkeitsregeln gegen doppelte offene Vorgänge
 
-## Datenmigration
+## Kompatibilität
 
-Vorhandene `data/bot.db` bleibt kompatibel und wird beim Start erweitert.
-Die ursprüngliche `team_panel.db` kann nach `data/team_panel.db` verschoben
-oder über `TEAM_DB_PATH` referenziert werden. Vor der ersten Aktualisierung
-sollte ein Backup beider Datenbanken angelegt werden.
+Vorhandene `data/bot.db` wird beim Start idempotent um neue Tabellen und Indizes
+erweitert. Bestehende `.env`-Standardrollen werden bei der ersten Verwendung als
+Fallback übernommen; danach kann die Verwaltung vollständig über `/settings`
+erfolgen.
 
 ## Prüfung
 
 - Kompilierung aller Python-Dateien
-- Import sämtlicher Module
-- isolierter SQLite-Schema- und Multi-Guild-Test
-- statische Prüfung auf Syntax-/Namensfehler
-- Secret- und Hardcoding-Suche
+- Ruff-Prüfung
+- acht automatisierte Tests für Module, Schema, Guild-Isolation, Teamhierarchie
+  und Bewerbungsfristen
+- Ladeprüfung aller 15 produktiven Extensions und 13 persistenten Views
+- `git diff --check` und Secret-Suche vor Veröffentlichung
 
-Ein vollständiger Discord-End-to-End-Test benötigt den produktiven Token und
-die konfigurierte Guild und wird deshalb erst nach dem Deployment ausgeführt.
+Ein echter Discord-End-to-End-Test benötigt den produktiven Token und die Guild
+und muss nach dem Pull auf dem Server erfolgen.

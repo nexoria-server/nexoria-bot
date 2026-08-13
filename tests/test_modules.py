@@ -7,7 +7,11 @@ from main import COGS
 def test_all_configured_extensions_exist_and_import() -> None:
     assert "bot.cogs.announcments" in COGS
     assert "bot.cogs.invites" in COGS
-    assert len(COGS) == len(set(COGS)) == 13
+    assert "bot.cogs.management" in COGS
+    assert "bot.cogs.command_center" in COGS
+    assert "bot.cogs.team_system" in COGS
+    assert "bot.cogs.team" not in COGS
+    assert len(COGS) == len(set(COGS)) == 15
     for extension in COGS:
         assert importlib.import_module(extension)
 

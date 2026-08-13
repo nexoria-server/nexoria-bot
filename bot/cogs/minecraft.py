@@ -10,6 +10,7 @@ from discord.ext import commands, tasks
 from mcstatus import JavaServer
 
 from bot.config import settings
+from bot.services import require_permission
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +43,27 @@ class MinecraftView(discord.ui.View):
         await interaction.response.send_message(
             f"☕ **Java:** `{settings.MC_SERVER_HOST}:{settings.MC_SERVER_PORT}`\n"
             f"📱 **Bedrock:** `{settings.MC_BEDROCK_HOST}:{settings.MC_BEDROCK_PORT}`",
+            ephemeral=True,
+        )
+
+    @discord.ui.button(
+        label="Online-Spieler",
+        emoji="👥",
+        style=discord.ButtonStyle.secondary,
+        custom_id="nexoria:minecraft:players",
+    )
+    async def players(self, interaction: discord.Interaction, _: discord.ui.Button) -> None:
+        if not await require_permission(interaction, interaction.client.db, "minecraft_details"):
+            return
+        status = await self.cog.get_status()
+        names = status["names"]
+        await interaction.response.send_message(
+            "**Aktuell online:**\n"
+            + (
+                "\n".join(f"• `{name}`" for name in names)
+                if names
+                else "Niemand oder keine Spielerliste verfügbar."
+            ),
             ephemeral=True,
         )
 
@@ -115,12 +137,6 @@ class Minecraft(commands.Cog):
             name="📶 Ping",
             value=f"`{status['ping']} ms`" if status["online"] else "`Nicht erreichbar`",
         )
-        if status["names"]:
-            embed.add_field(
-                name="⛏️ Online-Spieler",
-                value="\n".join(f"• {name}" for name in status["names"][:20]),
-                inline=False,
-            )
         embed.add_field(
             name="☕ Java",
             value=f"`{settings.MC_SERVER_HOST}:{settings.MC_SERVER_PORT}`",
@@ -188,9 +204,7 @@ class Minecraft(commands.Cog):
             f"✅ Minecraft-Statuspanel in {target.mention} erstellt.", ephemeral=True
         )
 
-    @app_commands.command(
-        name="minecraft_status", description="Setzt den Minecraft-Serverstatus."
-    )
+    @app_commands.command(name="minecraft_status", description="Setzt den Minecraft-Serverstatus.")
     @app_commands.choices(
         status=[
             app_commands.Choice(name="Wartung", value="wartung"),

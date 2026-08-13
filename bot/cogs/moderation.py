@@ -7,6 +7,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot.embeds import success
+from bot.services import require_permission
 from bot.utils import send_log
 
 
@@ -14,10 +15,10 @@ class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
 
-    async def guard(
-        self, interaction: discord.Interaction, member: discord.Member
-    ) -> bool:
+    async def guard(self, interaction: discord.Interaction, member: discord.Member) -> bool:
         if not interaction.guild or not isinstance(interaction.user, discord.Member):
+            return False
+        if not await require_permission(interaction, self.bot.db, "moderation"):
             return False
         if member == interaction.user:
             await interaction.response.send_message(
@@ -112,9 +113,9 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="warnings", description="Zeigt Warnungen eines Mitglieds.")
     @app_commands.default_permissions(moderate_members=True)
-    async def warnings(
-        self, interaction: discord.Interaction, member: discord.Member
-    ) -> None:
+    async def warnings(self, interaction: discord.Interaction, member: discord.Member) -> None:
+        if not await require_permission(interaction, self.bot.db, "moderation"):
+            return
         rows = await self.bot.db.fetchall(
             "SELECT reason,moderator_id,created_at FROM warnings "
             "WHERE guild_id=? AND user_id=? ORDER BY id DESC LIMIT 15",
@@ -169,9 +170,7 @@ class Moderation(commands.Cog):
         await self.dm(member, interaction.guild, "Kick", grund)
         await self.record(interaction, member, "Kick", grund)
         await member.kick(reason=grund)
-        await interaction.response.send_message(
-            embed=success("Kick", f"{member} wurde gekickt.")
-        )
+        await interaction.response.send_message(embed=success("Kick", f"{member} wurde gekickt."))
         await send_log(
             self.bot,
             interaction.guild,
@@ -193,9 +192,7 @@ class Moderation(commands.Cog):
         await self.dm(member, interaction.guild, "Ban", grund)
         await self.record(interaction, member, "Ban", grund)
         await member.ban(reason=grund)
-        await interaction.response.send_message(
-            embed=success("Ban", f"{member} wurde gebannt.")
-        )
+        await interaction.response.send_message(embed=success("Ban", f"{member} wurde gebannt."))
         await send_log(
             self.bot,
             interaction.guild,
@@ -206,19 +203,22 @@ class Moderation(commands.Cog):
 
     @app_commands.command(name="history", description="Zeigt den Moderationsverlauf.")
     @app_commands.default_permissions(moderate_members=True)
-    async def history(
-        self, interaction: discord.Interaction, member: discord.Member
-    ) -> None:
+    async def history(self, interaction: discord.Interaction, member: discord.Member) -> None:
+        if not await require_permission(interaction, self.bot.db, "moderation"):
+            return
         rows = await self.bot.db.fetchall(
             "SELECT action,reason,moderator_id,created_at FROM moderation_actions "
             "WHERE guild_id=? AND user_id=? ORDER BY id DESC LIMIT 20",
             (interaction.guild.id, member.id),
         )
-        text = "\n".join(
-            f"• {row['created_at']} — **{row['action']}** — {row['reason']} "
-            f"(<@{row['moderator_id']}>)"
-            for row in rows
-        ) or "Kein Verlauf vorhanden."
+        text = (
+            "\n".join(
+                f"• {row['created_at']} — **{row['action']}** — {row['reason']} "
+                f"(<@{row['moderator_id']}>)"
+                for row in rows
+            )
+            or "Kein Verlauf vorhanden."
+        )
         await interaction.response.send_message(
             embed=discord.Embed(title=f"📋 Verlauf — {member}", description=text[:4000]),
             ephemeral=True,
@@ -229,14 +229,14 @@ class Moderation(commands.Cog):
     async def clear(
         self, interaction: discord.Interaction, anzahl: app_commands.Range[int, 1, 100]
     ) -> None:
+        if not await require_permission(interaction, self.bot.db, "moderation"):
+            return
         if not isinstance(interaction.channel, discord.TextChannel):
             await interaction.response.send_message("❌ Ungültiger Kanal.", ephemeral=True)
             return
         await interaction.response.defer(ephemeral=True)
         deleted = await interaction.channel.purge(limit=anzahl)
-        await interaction.followup.send(
-            f"🧹 {len(deleted)} Nachrichten gelöscht.", ephemeral=True
-        )
+        await interaction.followup.send(f"🧹 {len(deleted)} Nachrichten gelöscht.", ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:

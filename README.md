@@ -1,8 +1,8 @@
 # Nexoria Craft Discord Bot
 
-Der vollständige Community-Bot mit Tickets, Bewerbungen, Teamverwaltung,
-Moderation, Announcements, Giveaways, Einladungen, Minecraft-Status, Regeln,
-Welcome/Leave, Logging und Anti-Spam.
+Professioneller, persistenter Multi-Guild-Bot für Tickets, Bewerbungen,
+Teamverwaltung, Moderation, Giveaways, Minecraft-Status, Announcements,
+Einladungen, Regeln, Welcome/Leave, Logging und Sicherheit.
 
 ## Voraussetzungen
 
@@ -11,32 +11,31 @@ Welcome/Leave, Logging und Anti-Spam.
   **Message Content Intent**
 - Discord-Scopes `bot` und `applications.commands`
 
-## Installation
+Die privilegierten Intents werden im
+[Discord Developer Portal](https://discord.com/developers/applications) unter
+**Bot → Privileged Gateway Intents** aktiviert.
+
+## Installation auf Vionity/Linux
 
 ```bash
-git clone --branch agent/modular-multi-guild-bot --single-branch \
-  https://github.com/nexoria-server/nexoria-bot.git
+cd /root
+git clone --branch agent/modular-multi-guild-bot --single-branch https://github.com/nexoria-server/nexoria-bot.git
 cd nexoria-bot
 python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+.venv/bin/python -m pip install --upgrade pip
+.venv/bin/python -m pip install -r requirements.txt
 cp .env.example .env
-```
-
-Die IDs eines Discord-Objekts erhältst du nach Aktivierung des Discord-
-Entwicklermodus über **Rechtsklick → ID kopieren**. Trage Token, Kanäle,
-Kategorien und Rollen in `.env` ein.
-
-Start:
-
-```bash
+nano .env
 .venv/bin/python main.py
 ```
 
-## Vionity aktualisieren
+In `nano`: Werte eintragen, mit `Strg+O`, Enter speichern und mit `Strg+X`
+schließen. Der Discord-Token gehört ausschließlich in `.env` und niemals in
+GitHub oder einen Discord-Chat.
 
-Im bestehenden Verzeichnis:
+## Update auf Vionity
+
+Bot im Panel stoppen und danach nacheinander ausführen:
 
 ```bash
 cd /root/nexoria-bot
@@ -45,29 +44,43 @@ git pull --ff-only origin agent/modular-multi-guild-bot
 .venv/bin/python main.py
 ```
 
-Die vorhandene `.env` und Datenbanken werden von Git nicht verändert. Vor
-einem Update empfiehlt sich trotzdem ein Backup des Ordners `data/`.
+Die `.env` und SQLite-Datenbanken werden von Git nicht verändert. Vor einem
+Update sollte der Ordner `data/` gesichert werden.
 
-## Erste Discord-Konfiguration
+## Einrichtung in Discord
 
-```text
-/config logs:#logs tickets:Ticket-Kategorie applications:#bewerbungen
-        ticket_staff:@Support application_staff:@Bewerbungsteam
-/ticket channel:#tickets
-/bewerbung_panel
-/minecraft kanal:#minecraft-status
-/invite_panel
-/announce-panel
-/regeln
-```
+Ein Administrator beginnt mit `/settings`. Dort werden ohne manuelle IDs
+mehrere Rollen je Zuständigkeit, Teamstufen und Systemkanäle ausgewählt.
 
-Die tatsächlich registrierten Commands können je nach konfigurierten Modulen
-abweichen. Technische Fehler erscheinen ausschließlich in der Konsole und in
-`logs/bot.log`.
+Empfohlene Reihenfolge:
 
-## Archiv
+1. `/settings` – Teamrollen, Berechtigungen, Ticket-/Bewerbungsrollen und Kanäle
+2. `/ticket category` – Kategorie für jede Ticketart festlegen
+3. `/ticket open kanal` und `/ticket archive kanal`
+4. `/application panel kanal` und `/application archive kanal`
+5. `/team-list kanal`, `/team-panel kanal`, `/minecraft channel`
+6. `/commands-panel kanal` – permanente, kategorisierte Command-Hilfe
 
-Unter `legacy_sources/` bleiben außerdem alle 14 ursprünglich einzeln
-bereitgestellten Dateien unverändert erhalten. Sie werden nicht ausgeführt.
-Der vollständige und überarbeitete Bot liegt unter `bot/` und startet über
-`main.py`.
+Die Botrolle muss in der Discord-Rollenliste über allen Rollen stehen, die der
+Bot automatisch vergeben oder moderieren soll.
+
+## Wichtige Funktionen
+
+- Teamliste alle 30 Sekunden und zusätzlich sofort nach Rollenänderungen;
+  jedes Mitglied erscheint nur unter seiner höchsten konfigurierten Rolle.
+- Minecraft-Panel alle 15 Sekunden; Online-Namen sind über einen geschützten
+  Admin-Button abrufbar.
+- Bewerbungen: Test Supporter 30 Tage, Test Developer 14 Tage, Media 14 Tage,
+  Partner 7 Tage; kompakte Formulare, passende Entscheidungs-DMs und Archiv.
+- Tickets: getrennte Kategorien und Zuständigkeitsrollen, vollständige
+  HTML-Transkripte und Suchpanel.
+- Giveaway-Gewinner erhalten keine Ticket-DM. Im Ergebniskanal kann nur ein
+  tatsächlicher Gewinner genau einmal sein Gewinn-Ticket erzeugen.
+- Moderationsaktionen werden gespeichert, per DM erklärt und sind im
+  Team-Statistikpanel samt Verlauf auswertbar.
+
+## Originalstand
+
+Unter `legacy_sources/` bleiben alle ursprünglich bereitgestellten Dateien
+unverändert erhalten. Sie werden nicht ausgeführt; der produktive Bot liegt
+unter `bot/` und startet über `main.py`.

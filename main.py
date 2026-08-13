@@ -11,11 +11,13 @@ from bot.database import Database
 
 COGS = [
     "bot.cogs.core",
+    "bot.cogs.management",
+    "bot.cogs.command_center",
     "bot.cogs.tickets",
     "bot.cogs.moderation",
     "bot.cogs.announcments",
     "bot.cogs.minecraft",
-    "bot.cogs.team",
+    "bot.cogs.team_system",
     "bot.cogs.logs",
     "bot.cogs.applications",
     "bot.cogs.giveaways",
@@ -83,15 +85,11 @@ class CommunityBot(commands.Bot):
             raise RuntimeError("Folgende Module konnten nicht geladen werden: " + ", ".join(failed))
 
         if settings.DEV_GUILD_ID:
-            guild = discord.Object(
-                id=settings.DEV_GUILD_ID
-            )
+            guild = discord.Object(id=settings.DEV_GUILD_ID)
 
             self.tree.copy_global_to(guild=guild)
 
-            synced = await self.tree.sync(
-                guild=guild
-            )
+            synced = await self.tree.sync(guild=guild)
         else:
             synced = await self.tree.sync()
 
@@ -108,13 +106,8 @@ class CommunityBot(commands.Bot):
 async def main() -> None:
     setup_logging()
 
-    if (
-        not settings.DISCORD_TOKEN or settings.DISCORD_TOKEN.startswith("PASTE_")
-    ):
-        raise RuntimeError(
-            "DISCORD_TOKEN fehlt. "
-            "Bitte .env konfigurieren."
-        )
+    if not settings.DISCORD_TOKEN or settings.DISCORD_TOKEN.startswith("PASTE_"):
+        raise RuntimeError("DISCORD_TOKEN fehlt. Bitte .env konfigurieren.")
 
     bot = CommunityBot()
 
