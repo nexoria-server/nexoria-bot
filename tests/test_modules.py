@@ -1,7 +1,11 @@
 import importlib
 from pathlib import Path
 
-from main import COGS
+from main import BOT_ACTIVITY, COGS
+
+
+def test_bot_activity_text() -> None:
+    assert BOT_ACTIVITY == "NexoriaCraft.de on mv"
 
 
 def test_all_configured_extensions_exist_and_import() -> None:
