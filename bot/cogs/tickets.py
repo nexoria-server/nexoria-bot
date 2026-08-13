@@ -373,6 +373,11 @@ class Tickets(commands.GroupCog, group_name="ticket", group_description="Tickets
             f"✅ Ticketpanel in {kanal.mention} veröffentlicht.", ephemeral=True
         )
 
+    @app_commands.command(name="panel", description="Kompatibler Alias: postet das Ticketpanel.")
+    @app_commands.default_permissions(manage_guild=True)
+    async def panel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
+        await self.open.callback(self, interaction, channel)
+
     @app_commands.command(name="type", description="Erstellt oder bearbeitet eine Ticketart.")
     @app_commands.default_permissions(manage_guild=True)
     async def type(self, interaction: discord.Interaction) -> None:

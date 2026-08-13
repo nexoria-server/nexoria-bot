@@ -32,6 +32,20 @@ FORM_FIELDS = {
         ("Motivation für Nexoria Craft", "Motivation", True),
         ("Zeiten und Aktivität pro Woche", "Verfügbarkeit", True),
     ),
+    "developer": (
+        ("Minecraft-Name, Discord-Name und Alter", "Grunddaten", True),
+        ("Programmiersprachen und Erfahrung", "Kenntnisse", True),
+        ("GitHub, Portfolio oder Projektlinks", "Referenzen", True),
+        ("Motivation für Nexoria Craft", "Motivation", True),
+        ("Zeiten und Aktivität pro Woche", "Verfügbarkeit", True),
+    ),
+    "builder": (
+        ("Minecraft-Name, Discord-Name und Alter", "Grunddaten", True),
+        ("Baustile und bisherige Erfahrung", "Erfahrung", True),
+        ("WorldEdit und weitere Werkzeuge", "Werkzeuge", True),
+        ("Portfolio oder Bilder deiner Builds", "Referenzen", True),
+        ("Motivation und Verfügbarkeit", "Motivation", True),
+    ),
     "media": (
         ("Minecraft-Name, Discord-Name und Alter", "Grunddaten", True),
         ("Plattform und Kanal-/Profil-Link", "Profil", True),

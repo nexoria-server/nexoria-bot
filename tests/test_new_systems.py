@@ -29,3 +29,5 @@ def test_application_periods_match_requirements() -> None:
     assert DEFAULT_APPLICATION_TYPES["test_developer"]["days"] == 14
     assert DEFAULT_APPLICATION_TYPES["media"]["days"] == 14
     assert DEFAULT_APPLICATION_TYPES["partner"]["days"] == 7
+    assert DEFAULT_APPLICATION_TYPES["developer"]["days"] == 14
+    assert {"builder", "developer"} <= DEFAULT_APPLICATION_TYPES.keys()

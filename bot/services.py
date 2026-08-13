@@ -44,6 +44,22 @@ DEFAULT_APPLICATION_TYPES = {
             "Erfahrung und Projekte\nGitHub-/Portfolio-Link\nMotivation\nVerfügbarkeit"
         ),
     },
+    "developer": {
+        "name": "Developer",
+        "days": 14,
+        "questions": (
+            "Minecraft-Name\nDiscord-Name\nAlter\nProgrammiersprachen\n"
+            "Erfahrung und Projekte\nGitHub-/Portfolio-Link\nMotivation\nVerfügbarkeit"
+        ),
+    },
+    "builder": {
+        "name": "Builder",
+        "days": 14,
+        "questions": (
+            "Minecraft-Name\nDiscord-Name\nAlter\nBaustile und Erfahrung\n"
+            "WorldEdit-/Tool-Erfahrung\nPortfolio-/Bilder-Link\nMotivation\nVerfügbarkeit"
+        ),
+    },
     "media": {
         "name": "Media",
         "days": 14,

@@ -61,6 +61,11 @@ Empfohlene Reihenfolge:
 5. `/team-list kanal`, `/team-panel kanal`, `/minecraft channel`
 6. `/commands-panel kanal` – permanente, kategorisierte Command-Hilfe
 
+Alle ursprünglichen Slash-Commands bleiben registriert. Insbesondere stehen
+`/bewerbung_panel` und `/bewerbung_suche` als kompatible Aliase weiterhin zur
+Verfügung. Die alte Ticketpanel-Funktion liegt im erweiterten Ticket-Namensraum
+unter `/ticket panel` sowie `/ticket open`.
+
 Die Botrolle muss in der Discord-Rollenliste über allen Rollen stehen, die der
 Bot automatisch vergeben oder moderieren soll.
 

@@ -23,6 +23,8 @@ versioniert.
 - vollständige HTML-Tickettranskripte und durchsuchbares Archiv
 - atomarer Giveaway-Abschluss und genau einmal einlösbares Gewinner-Ticket
 - permanentes Command-Panel mit unverändertem Hauptpanel und privaten Detailseiten
+- Kompatibilitätsschicht für sämtliche ursprünglichen Slash-Command-Namen sowie
+  Builder- und Developer-Bewerbungen
 - Datenbankindizes und Eindeutigkeitsregeln gegen doppelte offene Vorgänge
 
 ## Kompatibilität

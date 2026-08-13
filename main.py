@@ -12,6 +12,7 @@ from bot.database import Database
 COGS = [
     "bot.cogs.core",
     "bot.cogs.management",
+    "bot.cogs.compatibility",
     "bot.cogs.command_center",
     "bot.cogs.tickets",
     "bot.cogs.moderation",
