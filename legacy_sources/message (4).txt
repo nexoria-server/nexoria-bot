@@ -1,0 +1,1737 @@
+NEXORIA CRAFT – MASTER-PROMPT
+VOLLSTÄNDIGE ANFORDERUNGEN FÜR DIE WEITERENTWICKLUNG DES DISCORD-BOTS
+
+==================================================
+WICHTIG – ARBEITSWEISE
+==================================================
+
+Du arbeitest an einem bereits bestehenden Discord-Bot für Nexoria Craft.
+
+Deine Aufgabe ist es, das bestehende Projekt zuerst vollständig zu analysieren und anschließend ALLE unten genannten Anforderungen professionell in das bestehende System zu integrieren.
+
+Nimm dir so viel Zeit, wie du benötigst.
+
+OPTIMIERE NICHT AUF SCHNELLIGKEIT.
+
+Qualität, Stabilität, Sicherheit, Performance, saubere Architektur, Wartbarkeit, Erweiterbarkeit und eine professionelle Benutzeroberfläche haben absolute Priorität.
+
+Lieber benötigst du deutlich länger und setzt alles sauber um, als dass du schnell eine halbfertige Lösung ablieferst.
+
+WICHTIG:
+
+Bevor du Änderungen machst:
+
+1. Bestehenden Code vollständig analysieren.
+2. Projektstruktur verstehen.
+3. Vorhandene Systeme verstehen.
+4. Datenbank verstehen.
+5. Bestehende Panels verstehen.
+6. Bestehende Commands verstehen.
+7. Bestehende Rollen- und Berechtigungslogik verstehen.
+8. Bestehende Ticket-, Bewerbungs-, Team-, Giveaway-, Minecraft- und Moderationssysteme verstehen.
+9. Prüfen, was bereits vorhanden ist.
+10. Bestehende funktionierende Systeme möglichst erweitern statt unnötig komplett neu zu bauen.
+11. Erst danach Architektur und Umsetzung planen.
+
+Keine Dummy-Funktionen.
+Keine Fake-Daten.
+Keine nur optisch funktionierenden Buttons.
+Keine halbfertigen Features.
+Keine unnötigen parallelen Systeme.
+
+Eine Funktion gilt erst als fertig, wenn Backend, Datenbank, UI, Permissions, Fehlerbehandlung, Neustartverhalten und Multi-Guild-Fähigkeit funktionieren.
+
+==================================================
+1. HAUPTZIEL
+==================================================
+
+Der bestehende Discord-Bot soll zu einem professionellen, modularen und vollständig konfigurierbaren Nexoria-Craft-Management-System weiterentwickelt werden.
+
+Das System muss möglichst auch auf anderen Discord-Servern eingesetzt werden können.
+
+Deshalb dürfen KEINE wichtigen Einstellungen fest im Code eingebaut sein.
+
+NICHT hardcoden:
+
+- Server-IDs
+- Rollen-IDs
+- Kanal-IDs
+- Kategorie-IDs
+- serverabhängige Konfigurationen
+
+Alle Einstellungen müssen pro Discord-Guild gespeichert werden.
+
+Guild A darf niemals versehentlich Einstellungen von Guild B verwenden.
+
+==================================================
+2. ZENTRALES ADMIN-/KONFIGURATIONSPANEL
+==================================================
+
+Es soll ein professionelles zentrales Administrationssystem geben.
+
+Hauptbereiche:
+
+⚙️ Administration
+
+- 👥 Team-System
+- 🔐 Rollen & Berechtigungen
+- 🎫 Ticket-System
+- 📝 Bewerbungen
+- 🛡️ Moderation
+- ⛏️ Minecraft
+- 🎁 Giveaways
+- 📢 Announcements
+- 📚 Archive
+- 🤖 Commands
+- 👑 Team-Leitungs-Panel
+- ⚙️ Allgemeine Einstellungen
+
+Alle wichtigen Einstellungen sollen möglichst über Panels, Buttons, Select-Menüs und Modals vorgenommen werden können.
+
+Der Administrator soll für normale Änderungen möglichst NICHT den Code bearbeiten müssen.
+
+==================================================
+3. ZENTRALES ROLLEN- UND BERECHTIGUNGSSYSTEM
+==================================================
+
+Es muss ein großes zentrales Panel geben:
+
+🔐 Rollen & Berechtigungen
+
+Dieses Panel übernimmt möglichst die gesamte Rollen- und Berechtigungsverwaltung.
+
+Der Administrator soll dort einstellen können:
+
+- Welche Rolle für welche Teamstufe zuständig ist.
+- Welche Rollen Bewerbungen bearbeiten dürfen.
+- Welche Rollen Tickets bearbeiten dürfen.
+- Welche Rollen Archive sehen dürfen.
+- Welche Rollen Moderationsaktionen durchführen dürfen.
+- Welche Rollen Minecraft-Spielerdaten sehen dürfen.
+- Welche Rollen Giveaways verwalten dürfen.
+- Welche Rollen Announcements senden dürfen.
+- Welche Rollen @everyone/@here oder bestimmte Rollen pingen dürfen.
+- Welche Rollen das Team-Leitungs-Panel sehen/bearbeiten dürfen.
+- Welche Rollen das System konfigurieren dürfen.
+
+Mehrere Rollen müssen überall dort möglich sein, wo mehrere Rollen benötigt werden.
+
+Beispiel:
+
+Support-Tickets:
+- Supporter
+- Moderator
+- Moderator+
+- Admin
+
+Alle ausgewählten Rollen erhalten Zugriff.
+
+==================================================
+4. ROLLEN AUS DISCORD AUSWÄHLEN
+==================================================
+
+Rollen sollen möglichst über Discord Role-Select-Menüs ausgewählt werden.
+
+KEINE manuelle Eingabe von Rollen-IDs als normale Konfiguration.
+
+Der Bot soll die vorhandenen Rollen des Servers auslesen und zur Auswahl anbieten.
+
+Wenn eine konfigurierte Rolle gelöscht wird:
+
+- Bot darf nicht abstürzen.
+- Rolle als ungültig erkennen.
+- Administrator informieren.
+- Neukonfiguration ermöglichen.
+
+==================================================
+5. NORMALE TEAM-LISTE
+==================================================
+
+Die normale Team-Hierarchie lautet exakt:
+
+1. Owner
+2. Co-Owner
+3. Admin
+4. Head Developer
+5. Developer
+6. Test Developer
+7. Moderator+
+8. Moderator
+9. Supporter
+10. Test Supporter
+
+WICHTIG:
+
+OWNER STEHT IMMER AN ERSTER STELLE.
+
+Test Supporter steht unter allen anderen Teamstufen.
+
+Media gehört NICHT in diese normale Team-Liste.
+
+==================================================
+6. HÖCHSTE TEAMROLLE
+==================================================
+
+Ein Spieler darf in der normalen Team-Liste nur EINMAL erscheinen.
+
+Wenn ein Spieler mehrere Teamrollen besitzt, wird nur seine höchste konfigurierte Teamrolle angezeigt.
+
+Beispiel:
+
+Ein Spieler besitzt:
+
+Owner
+Admin
+Developer
+Supporter
+
+Dann erscheint er ausschließlich unter:
+
+Owner
+
+NICHT zusätzlich unter Admin, Developer oder Supporter.
+
+Die Prioritäten müssen über das Rollenpanel konfigurierbar sein.
+
+==================================================
+7. TEAMROLLEN KONFIGURIEREN
+==================================================
+
+Die komplette Team-Hierarchie muss über ein Panel eingerichtet werden können.
+
+Für jede Teamstufe:
+
+- Discord-Rolle auswählen
+- Priorität
+- aktiv/inaktiv
+- Anzeige in Team-Liste
+- Berechtigungsstufe
+
+Beispiel:
+
+Owner
+→ @Owner
+
+Co-Owner
+→ @Co-Owner
+
+Admin
+→ @Admin
+
+etc.
+
+Keine festen Rollen-IDs im Code.
+
+==================================================
+8. TEAM-LISTE AUTOMATISCH AKTUALISIEREN
+==================================================
+
+Die Team-Liste soll standardmäßig alle 30 Sekunden aktualisiert werden.
+
+Dabei prüfen:
+
+- neue Teammitglieder
+- entfernte Teammitglieder
+- Rollenänderungen
+- höchste Teamrolle
+- Reihenfolge
+- Anzeige
+
+Zusätzlich soll möglichst ereignisbasiert aktualisiert werden, wenn Discord eine relevante Rollenänderung meldet.
+
+Wenn sich nichts geändert hat, soll keine unnötige Discord-Nachricht bearbeitet werden.
+
+==================================================
+9. TEAM-STATISTIKEN
+==================================================
+
+Im Team-Panel soll es einen zusätzlichen Bereich geben:
+
+📊 Team-Statistiken
+
+Für jedes Teammitglied anzeigen:
+
+- Warnungen
+- Mutes
+- Timeouts
+- Kicks
+- Bans
+- sonstige relevante Moderationsaktionen
+
+Es soll möglich sein, auf ein Teammitglied zu klicken und dessen vollständigen Verlauf zu öffnen.
+
+==================================================
+10. TEAM-VERLAUF
+==================================================
+
+Für jedes Teammitglied:
+
+📋 Verlauf anzeigen
+
+Anzeigen:
+
+- Datum
+- Uhrzeit
+- Spieler
+- Aktion
+- Grund
+- Dauer
+- zuständiges Teammitglied
+
+Mit Pagination, wenn viele Einträge vorhanden sind.
+
+==================================================
+11. MODERATION IM TEAM-PANEL
+==================================================
+
+Wenn ein Teammitglied über Commands einen Spieler moderiert, muss die Aktion automatisch gespeichert werden.
+
+Beispiele:
+
+- Warn
+- Mute
+- Timeout
+- Kick
+- Ban
+
+Speichern:
+
+- Teammitglied
+- Spieler
+- Spieler-ID
+- Aktion
+- Grund
+- Datum
+- Uhrzeit
+- Dauer, wenn vorhanden
+
+==================================================
+12. MODERATIONS-DM
+==================================================
+
+Nach einer Moderationsaktion soll der betroffene Spieler automatisch eine DM erhalten.
+
+Beispiel:
+
+Du wurdest auf Nexoria Craft verwarnt.
+
+Grund:
+{reason}
+
+Entsprechend für:
+
+- Warn
+- Mute
+- Timeout
+- Kick
+- Ban
+
+Die Nachrichten sollen professionell sein.
+
+Wenn eine DM nicht zugestellt werden kann, darf der Bot nicht abstürzen.
+
+==================================================
+13. MINECRAFT-PANEL
+==================================================
+
+Das Minecraft-Panel soll standardmäßig alle 15 Sekunden aktualisiert werden.
+
+Dabei unbedingt Discord- und Minecraft-Rate-Limits beachten.
+
+Nicht unnötig viele Requests senden.
+
+Wenn sich Daten nicht verändert haben, unnötige Updates vermeiden.
+
+==================================================
+14. MINECRAFT ONLINE-SPIELER
+==================================================
+
+Wenn die bestehende Minecraft-Anbindung dies technisch ermöglicht:
+
+Eine Liste der aktuell online befindlichen Minecraft-Spieler anzeigen.
+
+Beispielsweise:
+
+⛏️ Online-Spieler
+
+- Spieler1
+- Spieler2
+- Spieler3
+
+Die Spieler sollen anklickbar sein, wenn dies technisch möglich ist.
+
+Die detaillierte Ansicht darf standardmäßig nur für folgende Teamstufen zugänglich sein:
+
+- Developer
+- Head Developer
+- Admin
+- Co-Owner
+- Owner
+
+Diese Berechtigungen müssen trotzdem über das zentrale Rollenpanel anpassbar sein.
+
+==================================================
+15. BEWERBUNGSSYSTEM
+==================================================
+
+Das Bewerbungssystem muss professioneller und übersichtlicher werden.
+
+Bewerbungsarten können beispielsweise sein:
+
+- Test Supporter
+- Test Developer
+- Media
+- Partner
+
+Weitere Bewerbungsarten sollen später problemlos ergänzt werden können.
+
+==================================================
+16. MEDIA-BEWERBUNGEN
+==================================================
+
+Bei Media-Bewerbungen sollen hauptsächlich wichtige Informationen angezeigt werden.
+
+Beispielsweise:
+
+- Name
+- Plattform
+- Follower
+- Video-Aufrufe
+- Reichweite
+- Social-Media-Link
+- Kanal-Link
+- Informationen zu den letzten Videos
+- relevante Daten zu Nexoria Craft, sofern technisch möglich
+
+Die Übersicht soll nicht unnötig mit unwichtigen Informationen überladen sein.
+
+Die vollständige Bewerbung bleibt trotzdem gespeichert.
+
+==================================================
+17. PARTNER-BEWERBUNGEN
+==================================================
+
+Bei Partner-Bewerbungen hauptsächlich wichtige Informationen anzeigen.
+
+Beispielsweise:
+
+- Projekt-/Servername
+- Server-Link
+- Discord-Link
+- Mitgliederzahl
+- Website
+- Ansprechpartner
+- wichtige Informationen über das Projekt
+
+Auch hier:
+Übersicht kurz und übersichtlich.
+
+Vollständige Bewerbung trotzdem speichern.
+
+==================================================
+18. BEWERBUNGSROLLEN
+==================================================
+
+SEHR WICHTIG:
+
+Für JEDE Bewerbungsart muss eingestellt werden können, welche Rollen bei Annahme vergeben werden.
+
+Mehrere Rollen müssen möglich sein.
+
+Beispiel:
+
+Media Bewerbung angenommen:
+
+Rollen:
+- @Media
+- @Content Creator
+- @Partner, falls gewünscht
+
+Der Administrator kann mehrere Rollen auswählen.
+
+==================================================
+19. BEWERBUNGSROLLEN-PANEL
+==================================================
+
+Das zentrale Rollen-/Bewerbungspanel soll für jede Bewerbungsart folgende Einstellungen besitzen:
+
+Rollen bei Annahme:
+[ mehrere Rollen ]
+
+Rollen während Testphase:
+[ mehrere Rollen ]
+
+Rollen nach erfolgreicher Testphase:
+[ mehrere Rollen ]
+
+Rollen bei nicht bestandener Testphase:
+[ mehrere Rollen ]
+
+Alles über das Panel konfigurierbar.
+
+==================================================
+20. TESTZEITEN
+==================================================
+
+Standardwerte:
+
+Test Supporter:
+30 Tage
+
+Test Developer:
+14 Tage
+
+Partner:
+7 Tage
+
+Media:
+14 Tage
+
+Diese Zeiten müssen über das Panel verändert werden können.
+
+==================================================
+21. TESTPHASEN
+==================================================
+
+Für Testphasen speichern:
+
+- Bewerber
+- Bewerbungs-ID
+- Bewerbungsart
+- Startdatum
+- Enddatum
+- Dauer
+- Status
+- zuständige Person
+
+Anzeigen:
+
+- Start
+- Ende
+- verbleibende Zeit
+- Status
+
+==================================================
+22. AUTOMATISCHE ROLLEN BEI TESTPHASEN
+==================================================
+
+Für jede Bewerbungsart individuell konfigurierbar:
+
+- Rollen beim Start
+- Rollen nach erfolgreicher Testphase
+- Rollen bei nicht bestandener Testphase
+
+Mehrere Rollen pro Einstellung.
+
+==================================================
+23. BEWERBUNGS-DMS
+==================================================
+
+Bei Annahme oder Ablehnung soll automatisch eine DM gesendet werden.
+
+Die DM muss sich konkret auf die Bewerbungsart beziehen.
+
+Beispiele:
+
+Media:
+„Deine Media-Bewerbung wurde angenommen.“
+
+Partner:
+„Deine Partner-Bewerbung wurde angenommen.“
+
+Test Developer:
+„Deine Bewerbung als Test Developer wurde angenommen.“
+
+Test Supporter:
+„Deine Bewerbung als Test Supporter wurde angenommen.“
+
+Bei Ablehnung:
+
+- konkrete Bewerbungsart
+- Entscheidung
+- optionaler Ablehnungsgrund
+
+==================================================
+24. TEST-SUPPORTER-EINFÜHRUNG
+==================================================
+
+WICHTIG:
+
+Die automatische Einführung soll AUSSCHLIESSLICH für Test Supporter existieren.
+
+NICHT automatisch für:
+
+- Test Developer
+- Developer
+- Media
+- Partner
+- Moderator
+- Supporter
+- andere Bewerbungsarten
+
+==================================================
+25. TEST-SUPPORTER-ONBOARDING
+==================================================
+
+Wenn jemand als Test Supporter angenommen wird, soll zusätzlich zur Annahme-DM eine kleine professionelle Einführung gesendet werden.
+
+Die Einführung soll beispielsweise erklären:
+
+- Willkommen im Team
+- Aufgaben eines Test Supporters
+- Umgang mit Spielern
+- Support
+- Tickets
+- Verhalten
+- Regeln
+- wann ein höheres Teammitglied gefragt werden soll
+- Testphase
+- wichtige nächste Schritte
+
+==================================================
+26. TEST-SUPPORTER-EINFÜHRUNG KONFIGURIERBAR
+==================================================
+
+Im Panel:
+
+Test Supporter Onboarding
+
+Einstellungen:
+
+- Einführung aktivieren/deaktivieren
+- Einführungstext bearbeiten
+- DM aktivieren/deaktivieren
+- Mentor anzeigen
+- Testdauer anzeigen
+
+Der Text muss über das Panel anpassbar sein.
+
+==================================================
+27. PLATZHALTER
+==================================================
+
+Unterstützen:
+
+{user}
+{username}
+{role}
+{application}
+{test_duration}
+{start_date}
+{end_date}
+{server}
+{mentor}
+
+==================================================
+28. MENTOR FÜR TEST SUPPORTER
+==================================================
+
+Optional kann in der Test-Supporter-Einführung der zuständige Mentor angezeigt werden.
+
+Beispiel:
+
+🎓 Dein Ansprechpartner
+
+Während deiner Testphase kannst du dich bei Fragen an deinen Mentor {mentor} wenden.
+
+==================================================
+29. ONBOARDING NICHT DOPPELT SENDEN
+==================================================
+
+Speichern:
+
+- Bewerbungs-ID
+- Benutzer-ID
+- Bewerbungsart
+- Onboarding gesendet
+- Zeitpunkt
+
+Nach Bot-Neustart darf die Einführung nicht erneut gesendet werden.
+
+==================================================
+30. TICKET-SYSTEM
+==================================================
+
+Das Ticket-System soll komplett konfigurierbar werden.
+
+Beispiel:
+
+/ticket open #support
+
+Der angegebene Kanal bestimmt, wo das Ticket-Panel eingerichtet wird.
+
+==================================================
+31. TICKET-ARTEN
+==================================================
+
+Unterstützen:
+
+- Support
+- Bewerbung
+- Media
+- Partner
+- Team
+- Giveaway
+- weitere frei konfigurierbare Ticketarten
+
+==================================================
+32. TICKET-KONFIGURATION
+==================================================
+
+Für jede Ticketart:
+
+- Name
+- Beschreibung
+- Panel-Kanal
+- Kategorie
+- zuständige Rollen
+- mehrere Rollen
+- Buttons
+- Select-Menüs
+- automatische Nachrichten
+- Archivierung
+- Transkript
+- Berechtigungen
+
+==================================================
+33. TICKETS IN JEDEM KANAL
+==================================================
+
+Das System muss möglichst in jedem gewünschten Kanal eingerichtet werden können.
+
+Beispiel:
+
+/ticket open #support
+
+Oder entsprechend über das Konfigurationspanel.
+
+Für jede Ticketart individuell:
+
+- Panel-Kanal
+- Ticket-Kategorie
+- Rollen
+- Berechtigungen
+
+==================================================
+34. TICKET-ARCHIV
+==================================================
+
+Geschlossene Tickets dauerhaft speichern.
+
+Speichern:
+
+- Ticket-ID
+- Ticket-Typ
+- Ersteller
+- Discord-ID
+- Erstellung
+- Schließung
+- bearbeitende Teammitglieder
+- Transkript
+- relevante Aktionen
+
+==================================================
+35. TICKET-ARCHIV-PANEL
+==================================================
+
+Ein professionelles Archivpanel:
+
+📚 Ticket-Archiv
+
+Suche nach:
+
+- Spielername
+- Discord-ID
+- Ticket-ID
+- Ticket-Typ
+- Zeitraum
+- Teammitglied
+
+Beim Öffnen eines Tickets den vollständigen Verlauf anzeigen.
+
+==================================================
+36. ZENTRALE SPIELERSUCHE
+==================================================
+
+Eine zentrale Funktion:
+
+🔎 Spieler suchen
+
+Nach Eingabe eines Spielers sollen möglichst alle relevanten Informationen angezeigt werden.
+
+Bewerbungen:
+
+- Supporter
+- Developer
+- Media
+- Partner
+- weitere
+
+Tickets:
+
+- Support
+- Bewerbung
+- Giveaway
+- weitere
+
+Moderation:
+
+- Warn
+- Mute
+- Timeout
+- Kick
+- Ban
+
+Alles möglichst übersichtlich in einem Profil.
+
+==================================================
+37. BEWERBUNGSARCHIV
+==================================================
+
+Alle Bewerbungen dauerhaft speichern.
+
+Suchbar nach:
+
+- Spieler
+- Discord-ID
+- Bewerbungsart
+- Datum
+- Status
+
+Beim Öffnen:
+
+- vollständige Bewerbung
+- Antworten
+- Zeitpunkt
+- Bearbeiter
+- Status
+- Entscheidung
+- Ablehnungsgrund
+- Testphase
+- Rollen
+- weitere Informationen
+
+Es muss möglich sein, gezielt auszuwählen:
+
+Media
+Partner
+Test Supporter
+Test Developer
+etc.
+
+==================================================
+38. GIVEAWAY-SYSTEM
+==================================================
+
+Das Giveaway-System muss geändert werden.
+
+NICHT mehr:
+
+Der Gewinner bekommt ein Ticket per DM.
+
+Stattdessen:
+
+1. Giveaway endet.
+2. Gewinner wird ermittelt.
+3. Gewinner wird im Giveaway-Kanal angezeigt.
+4. Nur der Gewinner bzw. die Gewinner sehen die Möglichkeit, ein Ticket zu erstellen.
+5. Gewinner kann einmal ein Ticket erstellen.
+6. Nach Erstellung verschwindet die Möglichkeit.
+7. Ticket wird direkt in die Giveaway-Gewinner-Kategorie erstellt.
+8. Im Ticket steht automatisch, was gewonnen wurde.
+9. Admins sehen alle wichtigen Giveaway-Informationen.
+
+==================================================
+39. GIVEAWAY-TICKET-SCHUTZ
+==================================================
+
+Pro:
+
+Gewinner + Giveaway
+
+maximal EIN Ticket.
+
+Auch nach Schließen des Tickets darf nicht automatisch ein zweites Ticket für dasselbe Giveaway erstellt werden.
+
+==================================================
+40. PERMANENTES COMMANDS-PANEL
+==================================================
+
+Das Commands-Panel soll permanent verfügbar sein.
+
+Wenn ein Bereich ausgewählt wird:
+
+- Hauptnavigation bleibt bestehen
+- Unterbereich wird geöffnet
+- Zurück-Button vorhanden
+- Panel soll nicht chaotisch komplett ersetzt werden
+
+==================================================
+41. COMMAND-DOKUMENTATION
+==================================================
+
+Das Commands-Panel soll alle vorhandenen Commands anzeigen.
+
+Neue Commands sollen möglichst automatisch erkannt bzw. berücksichtigt werden.
+
+Für jeden Command anzeigen:
+
+- Name
+- Beschreibung
+- Zweck
+- Berechtigung
+- Parameter
+- Beispiel
+- Hinweise
+
+==================================================
+42. ANNOUNCEMENT-PANEL
+==================================================
+
+Das Announcement-Panel soll professioneller werden.
+
+Ziel:
+
+Eine Ankündigung soll erstellt werden können, ohne dass der Benutzer Pings manuell in den Text schreiben muss.
+
+==================================================
+43. PING-AUSWAHL
+==================================================
+
+Im Announcement-Panel:
+
+Ping:
+
+- Kein Ping
+- @everyone
+- @here
+- eine Rolle
+- mehrere Rollen
+
+Rollen über Role-Select-Menü.
+
+==================================================
+44. PING UND TEXT TRENNEN
+==================================================
+
+Beispiel:
+
+📢 Announcement erstellen
+
+Titel:
+Server-Neustart
+
+Nachricht:
+Der Server wird heute um 20:00 Uhr neugestartet.
+
+Ping:
+@Server-News
+
+Kanal:
+#ankündigungen
+
+Buttons:
+
+- Vorschau
+- Bearbeiten
+- Senden
+- Abbrechen
+
+Ping technisch getrennt vom Nachrichtentext behandeln.
+
+==================================================
+45. MEHRERE PINGS
+==================================================
+
+Mehrere Rollen gleichzeitig unterstützen.
+
+Beispiel:
+
+- @Supporter
+- @Moderator
+- @Developer
+
+==================================================
+46. PING-BERECHTIGUNGEN
+==================================================
+
+Nicht jeder darf:
+
+- @everyone
+- @here
+- beliebige Rollen
+
+pingen.
+
+Die Berechtigungen müssen über das zentrale Rollen-/Berechtigungssystem kontrolliert werden.
+
+==================================================
+47. ANNOUNCEMENT-VORSCHAU
+==================================================
+
+Vor dem Senden eine Vorschau anzeigen.
+
+Beispiel:
+
+📢 Vorschau
+
+Ping:
+@Server-News
+
+Titel:
+Server-Neustart
+
+Nachricht:
+Der Server wird heute um 20:00 Uhr neugestartet.
+
+Kanal:
+#ankündigungen
+
+Buttons:
+
+- Bearbeiten
+- Senden
+- Abbrechen
+
+==================================================
+48. TEAM-LEITUNGS-PANEL
+==================================================
+
+Zusätzlich zur normalen Team-Liste soll es ein komplett eigenständiges Panel geben:
+
+/team-leitungs-panel
+
+WICHTIG:
+
+Dieses Panel ist NICHT dasselbe wie die normale Team-Liste.
+
+Normale Team-Liste:
+
+Wer ist im Team und welche höchste Teamrolle besitzt die Person?
+
+Team-Leitungs-Panel:
+
+Wer ist für welchen Bereich verantwortlich?
+
+==================================================
+49. TEAM-LEITUNGS-PANEL – STANDARDSTRUKTUR
+==================================================
+
+Die Standardbereiche sind EXAKT:
+
+1. 👑 Team-Leitung
+2. 🎓 Mentoren
+3. 💻 Developer-Leitung
+4. 🏗️ Builder-Leitung
+5. 🎬 Media-Leitung
+6. 🤝 Partner-Leitung
+
+WICHTIG:
+
+Es gibt KEINEN Bereich:
+
+„Support-Leitung“
+
+Es gibt KEINEN Bereich:
+
+„Support-Mentoren“
+
+Der Bereich heißt ausschließlich:
+
+„Mentoren“
+
+„Team-Leitung“ ist die allgemeine Team-Leitung.
+
+==================================================
+50. TEAM-LEITUNGS-BEREICHE ERWEITERBAR
+==================================================
+
+Die Bereiche dürfen nicht unnötig hart im Code festgelegt werden.
+
+Der Administrator soll später eigene Bereiche hinzufügen können.
+
+Beispiele:
+
+- Event-Leitung
+- Community-Leitung
+- Social-Media-Leitung
+- Content-Leitung
+- Technik-Leitung
+- weitere Bereiche
+
+==================================================
+51. ROLLEN FÜR TEAM-LEITUNGEN
+==================================================
+
+Für jeden Bereich können eine oder mehrere Discord-Rollen eingestellt werden.
+
+Beispiel:
+
+Developer-Leitung
+
+Rollen:
+
+@Head Developer
+@Developer Leitung
+
+Alle Mitglieder mit diesen Rollen können automatisch unter Developer-Leitung erscheinen.
+
+==================================================
+52. MEHRERE ROLLEN PRO LEITUNGSBEREICH
+==================================================
+
+Jeder Bereich muss mehrere Rollen unterstützen.
+
+Beispiel:
+
+Media-Leitung:
+
+- @Media Leitung
+- @Head Media
+
+==================================================
+53. AUTOMATISCHE PERSONENERKENNUNG
+==================================================
+
+Keine manuelle Benutzerliste als Standard.
+
+Nicht:
+
+User-ID eingeben
+Benutzer hinzufügen
+
+Stattdessen:
+
+Rollen konfigurieren.
+
+Der Bot erkennt automatisch alle Mitglieder, die diese Rollen besitzen.
+
+==================================================
+54. MEHRERE PERSONEN PRO BEREICH
+==================================================
+
+Es können mehrere Personen gleichzeitig in einem Leitungsbereich stehen.
+
+Beispiel:
+
+Developer-Leitung
+
+- User1
+- User2
+- User3
+
+==================================================
+55. AUTOMATISCHE AKTUALISIERUNG
+==================================================
+
+Das Team-Leitungs-Panel soll automatisch aktualisiert werden.
+
+Beispielsweise:
+
+- alle 30 Sekunden
+- zusätzlich ereignisbasiert bei Rollenänderungen
+
+Wenn jemand eine Leitungsrolle erhält:
+
+→ automatisch anzeigen
+
+Wenn jemand eine Leitungsrolle verliert:
+
+→ automatisch entfernen
+
+==================================================
+56. LEITUNGS-PANEL UND MEHRERE BEREICHE
+==================================================
+
+Die normale „höchste Teamrolle“-Regel gilt NICHT für das Team-Leitungs-Panel.
+
+Ein Benutzer kann beispielsweise gleichzeitig sein:
+
+- Developer-Leitung
+- Builder-Leitung
+
+Dann darf die Person in beiden Bereichen erscheinen.
+
+Das Team-Leitungs-Panel zeigt Verantwortlichkeiten, nicht die normale Team-Hierarchie.
+
+==================================================
+57. MENTOREN
+==================================================
+
+Besonderer Bereich:
+
+🎓 Mentoren
+
+Hier können eine oder mehrere Discord-Rollen als Mentorrollen konfiguriert werden.
+
+Beispiel:
+
+@Mentor
+
+Alle Mitglieder mit dieser Rolle werden automatisch unter:
+
+🎓 Mentoren
+
+angezeigt.
+
+==================================================
+58. MEHRERE MENTOR-ROLLEN
+==================================================
+
+Auch bei Mentoren müssen mehrere Rollen möglich sein.
+
+Beispiel:
+
+- @Mentor
+- @Senior Supporter
+- weitere konfigurierte Rollen
+
+Der Bereich heißt trotzdem einfach:
+
+Mentoren
+
+==================================================
+59. TEAM-LEITUNGS-PANEL – BEISPIEL
+==================================================
+
+👑 NEXORIA CRAFT – TEAM-LEITUNG
+
+👑 Team-Leitung
+@User1
+@User2
+
+🎓 Mentoren
+@User3
+@User4
+
+💻 Developer-Leitung
+@User5
+
+🏗️ Builder-Leitung
+@User6
+
+🎬 Media-Leitung
+@User7
+
+🤝 Partner-Leitung
+@User8
+
+Die tatsächlichen Benutzer werden automatisch anhand der konfigurierten Rollen ermittelt.
+
+==================================================
+60. TEAM-LEITUNGS-PANEL BEDIENUNG
+==================================================
+
+Buttons/Select-Menüs:
+
+⚙️ Konfigurieren
+➕ Bereich hinzufügen
+✏️ Bereich bearbeiten
+🗑️ Bereich entfernen
+🔄 Aktualisieren
+📋 Übersicht
+
+==================================================
+61. LEITUNGSBEREICH KONFIGURIEREN
+==================================================
+
+Beim Erstellen/Bearbeiten:
+
+- Name
+- Beschreibung
+- Rollen
+- Anzeige aktiv/inaktiv
+- Position
+
+==================================================
+62. REIHENFOLGE
+==================================================
+
+Standard:
+
+1. Team-Leitung
+2. Mentoren
+3. Developer-Leitung
+4. Builder-Leitung
+5. Media-Leitung
+6. Partner-Leitung
+
+Die Reihenfolge muss über das Panel veränderbar sein.
+
+==================================================
+63. BERECHTIGUNGEN TEAM-LEITUNGS-PANEL
+==================================================
+
+Nicht jeder darf das Team-Leitungs-Panel bearbeiten.
+
+Über das zentrale Berechtigungssystem konfigurierbar:
+
+- Panel anzeigen
+- Panel bearbeiten
+- Bereiche erstellen
+- Bereiche löschen
+- Rollen ändern
+- Reihenfolge ändern
+
+Anzeigen und Bearbeiten sollen getrennt konfigurierbar sein.
+
+==================================================
+64. INTEGRATION TEAM-LEITUNGS-PANEL
+==================================================
+
+Das Team-Leitungs-System muss in das zentrale Rollen- und Berechtigungssystem integriert werden.
+
+Einstellbar:
+
+Team-Leitung:
+- anzeigen
+- bearbeiten
+
+Mentoren:
+- anzeigen
+- bearbeiten
+
+Developer-Leitung:
+- anzeigen
+- bearbeiten
+
+Builder-Leitung:
+- anzeigen
+- bearbeiten
+
+Media-Leitung:
+- anzeigen
+- bearbeiten
+
+Partner-Leitung:
+- anzeigen
+- bearbeiten
+
+==================================================
+65. VERBINDUNG ZUM TEST-SUPPORTER-SYSTEM
+==================================================
+
+Das Team-Leitungs-Panel soll mit dem Test-Supporter-Onboarding zusammenarbeiten.
+
+Wenn ein Mentor konfiguriert wurde, kann dieser optional in der Einführung angezeigt werden.
+
+Wichtig:
+
+Die automatische Einführung bleibt ausschließlich für Test Supporter.
+
+==================================================
+66. PERMANENTES KONFIGURATIONSSYSTEM
+==================================================
+
+Das zentrale Panel soll so aufgebaut sein, dass neue Systeme später integriert werden können.
+
+Keine unnötig fest verdrahtete Architektur.
+
+Neue Bereiche sollen möglichst über Konfiguration hinzugefügt werden können.
+
+==================================================
+67. DATENBANK
+==================================================
+
+Wenn bereits eine Datenbank vorhanden ist:
+
+Diese weiterverwenden.
+
+Keine unnötige komplette Neuerstellung.
+
+Neue Datenbankstrukturen sauber migrieren.
+
+Speichern beispielsweise:
+
+- Guild-Konfiguration
+- Rollen
+- Permissions
+- Team-Historie
+- Moderations-Historie
+- Bewerbungen
+- Testphasen
+- Tickets
+- Ticket-Archive
+- Giveaways
+- Announcement-Konfiguration
+- Team-Leitungen
+- Onboardingstatus
+
+==================================================
+68. PERFORMANCE
+==================================================
+
+Besonders beachten:
+
+- Discord Rate Limits
+- Datenbankabfragen
+- Minecraft-15-Sekunden-Update
+- Team-30-Sekunden-Update
+- Team-Leitungs-Updates
+- mehrere Guilds
+- große Archive
+- viele Tickets
+- viele Bewerbungen
+
+Caching verwenden, wenn sinnvoll.
+
+Keine unnötigen API-Anfragen.
+
+==================================================
+69. SICHERHEIT
+==================================================
+
+Nur Buttons im UI zu verstecken reicht NICHT.
+
+Jede Aktion muss serverseitig überprüft werden.
+
+Besonders wichtig:
+
+- Rollenverwaltung
+- Teamverwaltung
+- Moderation
+- Archive
+- Bewerbungen
+- Tickets
+- Minecraft
+- Giveaways
+- Announcements
+- System-Konfiguration
+- Team-Leitungs-Konfiguration
+
+==================================================
+70. FEHLERBEHANDLUNG
+==================================================
+
+Benutzerfreundliche Fehlermeldungen.
+
+Beispiele:
+
+„Für diesen Bereich wurde noch keine Rolle konfiguriert.“
+
+„Der konfigurierte Kanal existiert nicht mehr.“
+
+„Für dieses Giveaway wurde bereits ein Ticket erstellt.“
+
+„Du hast keine Berechtigung für diese Aktion.“
+
+Technische Details ausschließlich in Logs.
+
+Bot darf bei Fehlern nicht abstürzen.
+
+==================================================
+71. LOGGING
+==================================================
+
+Protokollieren:
+
+- Konfigurationsänderungen
+- Rollenänderungen
+- Tickets
+- Bewerbungen
+- Moderation
+- Giveaways
+- Announcements
+- Teamaktionen
+- Team-Leitungs-Änderungen
+- relevante Fehler
+
+==================================================
+72. UI/UX
+==================================================
+
+Das komplette System soll professionell wirken.
+
+Verwenden:
+
+- strukturierte Embeds
+- klare Überschriften
+- Buttons
+- Select-Menüs
+- Role-Select-Menüs
+- Modals
+- Pagination
+- Suchfunktionen
+- Zurück-Buttons
+- Bestätigungsdialoge
+
+Keine unnötigen Textwände.
+
+Keine unklaren Buttons.
+
+Panels logisch strukturieren.
+
+==================================================
+73. COMMANDS-PANEL
+==================================================
+
+Das Commands-Panel soll professionell dokumentieren, was der Bot kann.
+
+Für jeden Command:
+
+Name
+Beschreibung
+Zweck
+Berechtigung
+Parameter
+Beispiel
+Hinweise
+
+Neue Commands, die später hinzugefügt werden, sollen möglichst automatisch in die Übersicht aufgenommen werden.
+
+==================================================
+74. MULTI-GUILD
+==================================================
+
+Der Bot muss auf mehreren Discord-Servern gleichzeitig funktionieren.
+
+Jede Guild besitzt ihre eigene:
+
+- Teamkonfiguration
+- Rollen
+- Permissions
+- Ticketkonfiguration
+- Bewerbungskonfiguration
+- Minecraftkonfiguration
+- Giveawaykonfiguration
+- Announcementkonfiguration
+- Team-Leitung
+- Archive
+- Kanäle
+- Kategorien
+
+Keine Konfiguration darf versehentlich zwischen Guilds geteilt werden.
+
+==================================================
+75. TESTS
+==================================================
+
+Vor Abschluss umfassend testen.
+
+TEAM:
+
+- Owner an erster Stelle
+- richtige Hierarchie
+- höchste Rolle gewinnt
+- mehrere Rollen
+- Rollenänderung
+- Rollenentfernung
+- 30-Sekunden-Update
+
+ROLLEN:
+
+- mehrere Rollen
+- Rollenänderung
+- gelöschte Rollen
+- Permissions
+- Neustart
+
+BEWERBUNGEN:
+
+- Erstellung
+- Annahme
+- Ablehnung
+- Rollenvergabe
+- mehrere Rollen
+- Testphasen
+- DMs
+- Archiv
+- Test-Supporter-Onboarding
+- Mentor-Anzeige
+
+TICKETS:
+
+- Erstellung
+- verschiedene Arten
+- Rollen
+- Permissions
+- Schließen
+- Archiv
+- Suche
+- doppelte Tickets
+
+MODERATION:
+
+- Warn
+- Mute
+- Timeout
+- Kick
+- Ban
+- DM
+- Statistik
+- Verlauf
+
+MINECRAFT:
+
+- Verbindung
+- Panel
+- 15-Sekunden-Update
+- Online-Spieler
+- Permissions
+
+GIVEAWAYS:
+
+- Gewinner
+- Sichtbarkeit
+- Ticket
+- nur ein Ticket
+- Kategorie
+- Gewinnanzeige
+
+ANNOUNCEMENTS:
+
+- kein Ping
+- @everyone
+- @here
+- eine Rolle
+- mehrere Rollen
+- Berechtigungen
+- Vorschau
+- Versand
+
+TEAM-LEITUNGS-PANEL:
+
+- Team-Leitung
+- Mentoren
+- Developer-Leitung
+- Builder-Leitung
+- Media-Leitung
+- Partner-Leitung
+- mehrere Rollen
+- mehrere Personen
+- automatische Aktualisierung
+- Berechtigungen
+- neue Bereiche
+- Reihenfolge
+- Rollenverlust
+- Rollenänderung
+
+MULTI-GUILD:
+
+Mehrere unterschiedliche Guild-Konfigurationen testen.
+
+==================================================
+76. ABSCHLUSSBERICHT
+==================================================
+
+Nach der Umsetzung einen vollständigen Bericht erstellen.
+
+Implementiert:
+Alle tatsächlich implementierten Funktionen.
+
+Geänderte Dateien:
+Alle geänderten/neuen Dateien.
+
+Datenbank:
+Alle Änderungen und Migrationen.
+
+Konfiguration:
+Was nach der Installation eingerichtet werden muss.
+
+Tests:
+Durchgeführte Tests.
+
+Ergebnisse:
+Was erfolgreich funktioniert.
+
+Einschränkungen:
+Nur tatsächlich vorhandene technische Einschränkungen nennen.
+
+==================================================
+77. ABSOLUT WICHTIG
+==================================================
+
+Arbeite nach diesem Ablauf:
+
+1. Bestehendes Projekt analysieren.
+2. Architektur verstehen.
+3. Vorhandene Systeme prüfen.
+4. Datenmodell planen.
+5. Neue Anforderungen mit bestehenden Systemen verbinden.
+6. Architektur gegebenenfalls refaktorieren.
+7. Implementieren.
+8. Datenbankmigrationen durchführen.
+9. UI implementieren.
+10. Permissions implementieren.
+11. Fehlerbehandlung implementieren.
+12. Tests durchführen.
+13. Fehler beheben.
+14. Erneut testen.
+15. Performance prüfen.
+16. Security prüfen.
+17. Multi-Guild prüfen.
+18. Alle Panels prüfen.
+19. Alle Commands prüfen.
+20. Finalen Gesamtcheck durchführen.
+21. Erst danach das Projekt als fertig betrachten.
+
+==================================================
+ENDZIEL
+==================================================
+
+Das Ergebnis soll ein professionelles, stabiles, modernes, modulares und vollständig konfigurierbares Nexoria-Craft-Management-System sein.
+
+Besonders wichtig:
+
+- OWNER STEHT IMMER AN ERSTER STELLE.
+- Test Supporter steht unter allen anderen Teamstufen.
+- Media gehört NICHT in die normale Team-Liste.
+- Ein Spieler wird in der normalen Team-Liste nur unter seiner höchsten Teamrolle angezeigt.
+- Mehrere Rollen müssen überall unterstützt werden.
+- Bewerbungsrollen müssen vollständig über ein Panel konfigurierbar sein.
+- Die Testzeiten müssen konfigurierbar sein.
+- Annahme- und Ablehnungs-DMs müssen sich auf die jeweilige Bewerbungsart beziehen.
+- Die automatische Einführung gibt es AUSSCHLIESSLICH für Test Supporter.
+- Test Supporter sollen optional einen Mentor angezeigt bekommen.
+- Das Minecraft-Panel aktualisiert sich alle 15 Sekunden.
+- Die Team-Liste aktualisiert sich alle 30 Sekunden.
+- Moderationsaktionen müssen gespeichert und im Team-Verlauf angezeigt werden.
+- Moderierte Spieler sollen eine DM mit Grund erhalten.
+- Das Ticket-System muss überall konfigurierbar sein.
+- /ticket open (kanal) soll den gewünschten Panel-Kanal festlegen können.
+- Geschlossene Tickets müssen archiviert werden.
+- Bewerbungen müssen archiviert und nach Bewerbungsart durchsucht werden können.
+- Giveaway-Gewinner erhalten das Ticket nicht mehr per DM.
+- Giveaway-Tickets werden im Giveaway-Gewinner-Bereich erstellt.
+- Jeder Gewinner darf pro Giveaway nur ein Ticket erstellen.
+- Das Commands-Panel soll permanent und professionell sein.
+- Neue Commands sollen mit Erklärungen berücksichtigt werden.
+- Announcements müssen ein professionelles Ping-System besitzen.
+- @everyone, @here und Rollen müssen über das Berechtigungssystem geschützt werden.
+- Das gesamte Rollen- und Berechtigungssystem soll über ein zentrales Panel konfigurierbar sein.
+- Das System muss Multi-Guild-fähig sein.
+
+TEAM-LEITUNGS-PANEL:
+
+/team-leitungs-panel
+
+Standardmäßig exakt:
+
+1. Team-Leitung
+2. Mentoren
+3. Developer-Leitung
+4. Builder-Leitung
+5. Media-Leitung
+6. Partner-Leitung
+
+Es gibt KEINEN Bereich „Support-Leitung“.
+
+Es gibt KEINEN Bereich „Support-Mentoren“.
+
+Der Bereich heißt ausschließlich „Mentoren“.
+
+Für jeden Leitungsbereich können eine oder mehrere Discord-Rollen eingestellt werden.
+
+Die Personen werden automatisch anhand dieser Rollen erkannt.
+
+Ein Benutzer kann in mehreren Leitungsbereichen gleichzeitig erscheinen.
+
+Weitere Leitungsbereiche müssen später über das Panel ergänzt werden können.
+
+Das gesamte System soll so professionell umgesetzt werden, dass es langfristig wartbar und erweiterbar bleibt.
+
+QUALITÄT VOR GESCHWINDIGKEIT.
+
+Nimm dir so viel Zeit wie nötig.
+
+Liefere erst dann eine finale Lösung ab, wenn du das bestehende System vollständig verstanden, die Änderungen sauber integriert und alles ausführlich getestet hast.

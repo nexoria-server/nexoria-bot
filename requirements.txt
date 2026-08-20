@@ -1,0 +1,4 @@
+discord.py>=2.7,<3
+mcstatus>=14,<15
+python-dotenv>=1.2,<2
+aiosqlite>=0.21,<1

@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nexoria-community-bot"
+version = "3.0.0"
+requires-python = ">=3.11"
+dependencies = [
+  "aiosqlite>=0.21,<1",
+  "discord.py>=2.7,<3",
+  "mcstatus>=14,<15",
+  "python-dotenv>=1.2,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9", "pytest-asyncio>=0.26,<1", "ruff>=0.16,<1"]
+
+[tool.setuptools.packages.find]
+include = ["bot*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["legacy_sources"]
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82"]
